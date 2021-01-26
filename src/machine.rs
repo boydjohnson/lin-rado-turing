@@ -10,6 +10,8 @@ pub struct Machine<State, Symbol> {
     prog: Program<State, Symbol>,
     state: State,
     pos: i64,
+
+    halt: Option<Halt>,
 }
 
 impl<S: State, Sym: Symbol> Machine<S, Sym> {
@@ -18,6 +20,8 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
             prog,
             state: S::initial_state(),
             pos: 0,
+
+            halt: None,
         }
     }
 
@@ -37,16 +41,8 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         self.pos += 1;
     }
 
-    fn change_state(&mut self, state: S) {
-        self.state = state;
-    }
-
-    fn halt(&mut self) {
-        unimplemented!()
-    }
-
-    fn quasihalt(&mut self) {
-        unimplemented!()
+    fn halt(&mut self) -> Option<Halt> {
+        self.halt
     }
 
     fn input_to_tape(input: Vec<Sym>) -> Tape<Sym> {
@@ -66,6 +62,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         let mut tape = Self::input_to_tape(input);
         for step in 1..=limit {
             if self.state == S::halt() {
+                self.halt = Some(Halt::new(step - 1, HaltReason::Halt));
                 break;
             }
 
@@ -95,8 +92,26 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub struct Halt {
-    steps: usize,
-    reason: HaltReason,
+    pub steps: usize,
+    pub reason: HaltReason,
+}
+
+impl Halt {
+    pub fn new(steps: usize, reason: HaltReason) -> Self {
+        Halt { steps, reason }
+    }
+
+    pub fn is_halted(&self) -> bool {
+        self.reason == HaltReason::Halt
+    }
+
+    pub fn is_lr_recurrence(&self) -> bool {
+        self.reason == HaltReason::Recurr
+    }
+
+    pub fn is_limit(&self) -> bool {
+        self.reason == HaltReason::XLimit
+    }
 }
 
 #[derive(Debug, PartialEq, Clone, Copy)]
