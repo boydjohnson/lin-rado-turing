@@ -68,7 +68,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         &mut self,
         input: Vec<Sym>,
         limit: usize,
-        mut output: Option<B>,
+        output: &mut Option<B>,
     ) {
         self.input_to_tape(input);
 
@@ -82,7 +82,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
             let state = self.state;
 
             let &(new_state, symbol, direction) = self.prog.instruction(state, symbol);
-            if let Some(buffer) = &mut output {
+            if let Some(buffer) = output {
                 writeln!(
                     buffer,
                     "step: {}: state={:?}, symbol: {:?}",
@@ -131,4 +131,32 @@ pub enum HaltReason {
     Halt,
     Recurr,
     XLimit,
+}
+
+pub fn run_machine<S: State, Sym: Symbol>(
+    program: Program<S, Sym>,
+    prog_str: &str,
+    limit: usize,
+    mut output: Option<Box<dyn Write>>,
+    _check_recurrence: bool,
+) {
+    let mut machine = Machine::new(program);
+
+    machine.run_until_halt(vec![], limit, &mut output);
+
+    if let Some(halt) = machine.halt() {
+        if let Some(w) = &mut output {
+            if let Err(e) = writeln!(
+                w,
+                "{}: marks {} steps {} reason {:?}",
+                prog_str,
+                machine.marks(),
+                halt.steps,
+                halt.reason
+            ) {
+                writeln!(std::io::stderr(), "Error writing: {}", e)
+                    .expect("Unable to write to stderr");
+            }
+        }
+    }
 }

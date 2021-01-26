@@ -1,4 +1,7 @@
-use crate::types::{Direction, State, Symbol};
+use crate::types::{
+    Direction, FiveState, FourState, FourSymbol, SixState, State, Symbol, ThreeState, ThreeSymbol,
+    TwoState, TwoSymbol,
+};
 use std::{collections::BTreeMap, str::FromStr};
 
 #[derive(Debug)]
@@ -65,6 +68,48 @@ where
 #[derive(Debug, PartialEq)]
 pub enum ProgramParseError {
     Error(String),
+}
+
+pub enum ProgramT {
+    TwoTwo(Program<TwoState, TwoSymbol>),
+    TwoThree(Program<TwoState, ThreeSymbol>),
+    TwoFour(Program<TwoState, FourSymbol>),
+    ThreeTwo(Program<ThreeState, TwoSymbol>),
+    ThreeThree(Program<ThreeState, ThreeSymbol>),
+    ThreeFour(Program<ThreeState, FourSymbol>),
+    FourTwo(Program<FourState, TwoSymbol>),
+    FourThree(Program<FourState, ThreeSymbol>),
+    FourFour(Program<FourState, FourSymbol>),
+    FiveTwo(Program<FiveState, TwoSymbol>),
+    FiveThree(Program<FiveState, ThreeSymbol>),
+    FiveFour(Program<FiveState, FourSymbol>),
+    SixTwo(Program<SixState, TwoSymbol>),
+    SixThree(Program<SixState, ThreeSymbol>),
+    SixFour(Program<SixState, FourSymbol>),
+}
+
+pub fn parse_program(prog_str: &str, complexity: &str) -> Result<ProgramT, ProgramParseError> {
+    match complexity {
+        "2-2" => prog_str.parse().map(ProgramT::TwoTwo),
+        "2-3" => prog_str.parse().map(ProgramT::TwoThree),
+        "2-4" => prog_str.parse().map(ProgramT::TwoFour),
+        "3-2" => prog_str.parse().map(ProgramT::ThreeTwo),
+        "3-3" => prog_str.parse().map(ProgramT::ThreeThree),
+        "3-4" => prog_str.parse().map(ProgramT::ThreeFour),
+        "4-2" => prog_str.parse().map(ProgramT::FourTwo),
+        "4-3" => prog_str.parse().map(ProgramT::FourThree),
+        "4-4" => prog_str.parse().map(ProgramT::FourFour),
+        "5-2" => prog_str.parse().map(ProgramT::FiveTwo),
+        "5-3" => prog_str.parse().map(ProgramT::FiveThree),
+        "5-4" => prog_str.parse().map(ProgramT::FiveFour),
+        "6-2" => prog_str.parse().map(ProgramT::SixTwo),
+        "6-3" => prog_str.parse().map(ProgramT::SixThree),
+        "6-4" => prog_str.parse().map(ProgramT::SixFour),
+        a => Err(ProgramParseError::Error(format!(
+            "Unable to parse program of type {}",
+            a
+        ))),
+    }
 }
 
 #[cfg(test)]
