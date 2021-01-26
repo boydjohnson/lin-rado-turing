@@ -78,7 +78,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                 break;
             }
 
-            let symbol = self.read().copied().unwrap_or_else(|| Sym::zero());
+            let symbol = self.read().copied().unwrap_or_else(Sym::zero);
             let state = self.state;
 
             let &(new_state, symbol, direction) = self.prog.instruction(state, symbol);
