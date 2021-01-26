@@ -1,8 +1,8 @@
 use crate::types::{Direction, State, Symbol};
-use std::{collections::HashMap, str::FromStr};
+use std::{collections::BTreeMap, str::FromStr};
 
 #[derive(Debug)]
-pub struct Program<State, Symbol>(HashMap<(State, Symbol), (State, Symbol, Direction)>);
+pub struct Program<State, Symbol>(BTreeMap<(State, Symbol), (State, Symbol, Direction)>);
 
 impl<S, Sym> Program<S, Sym>
 where
@@ -28,7 +28,7 @@ where
     fn from_str(s: &str) -> Result<Self, ProgramParseError> {
         let mut program_string_split = s.trim().split(" ");
 
-        let mut inner = HashMap::new();
+        let mut inner = BTreeMap::new();
 
         for state in State::iter_states() {
             for symbol in Symbol::iter_symbols() {

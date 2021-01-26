@@ -1,10 +1,10 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
-pub struct Tape<Symbol>(HashMap<i64, Symbol>, i64, i64);
+pub struct Tape<Symbol>(BTreeMap<i64, Symbol>, i64, i64);
 
 impl<Sym> Default for Tape<Sym> {
     fn default() -> Self {
-        Tape(HashMap::default(), 0, 0)
+        Tape(BTreeMap::default(), 0, 0)
     }
 }
 

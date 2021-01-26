@@ -22,7 +22,7 @@ impl FromStr for Direction {
     }
 }
 
-pub trait State: Hash + Eq + FromStr + Copy + Debug {
+pub trait State: Ord + Eq + FromStr + Copy + Debug {
     const NUM_STATES: usize;
 
     fn initial_state() -> Self;
@@ -32,7 +32,7 @@ pub trait State: Hash + Eq + FromStr + Copy + Debug {
     fn halt() -> Self;
 }
 
-pub trait Symbol: Hash + Eq + FromStr + Copy + Debug {
+pub trait Symbol: Ord + Eq + FromStr + Copy + Debug {
     const NUM: usize;
 
     fn iter_symbols() -> Box<dyn Iterator<Item = Self>>;
@@ -40,7 +40,7 @@ pub trait Symbol: Hash + Eq + FromStr + Copy + Debug {
     fn zero() -> Self;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub enum TwoState {
     A,
     B,
@@ -79,7 +79,7 @@ impl State for TwoState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub enum ThreeState {
     A,
     B,
@@ -120,7 +120,7 @@ impl State for ThreeState {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub enum FourState {
     A,
     B,
@@ -155,12 +155,15 @@ impl FromStr for FourState {
             "C" => Ok(FourState::C),
             "D" => Ok(FourState::D),
             "H" => Ok(FourState::H),
-            a => Err(ProgramParseError::Error(format!("Expected 'A', 'B', 'C', 'D', 'H', found {}", a)))
+            a => Err(ProgramParseError::Error(format!(
+                "Expected 'A', 'B', 'C', 'D', 'H', found {}",
+                a
+            ))),
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub enum TwoSymbol {
     Zero,
     One,
