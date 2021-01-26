@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::BTreeMap;
 
 pub struct Tape<Symbol>(BTreeMap<i64, Symbol>, i64, i64);
 

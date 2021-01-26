@@ -1,5 +1,5 @@
 use crate::program::ProgramParseError;
-use std::{fmt::Debug, hash::Hash, str::FromStr};
+use std::{fmt::Debug, str::FromStr};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {

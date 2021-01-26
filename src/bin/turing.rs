@@ -1,13 +1,9 @@
 use lin_rado_turing::{
     machine::Machine,
     program::{Program, ProgramParseError},
-    types::{FourState, ThreeState, TwoState, TwoSymbol},
+    types::{FourState, TwoSymbol},
 };
-use std::{
-    fs::{File, OpenOptions},
-    io::BufWriter,
-    process::exit,
-};
+use std::{fs::OpenOptions, io::BufWriter, process::exit};
 
 fn main() {
     let mut args = std::env::args().skip(1);
