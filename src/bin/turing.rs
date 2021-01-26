@@ -1,9 +1,12 @@
-use std::process::exit;
-
 use lin_rado_turing::{
     machine::Machine,
     program::{Program, ProgramParseError},
     types::{FourState, ThreeState, TwoState, TwoSymbol},
+};
+use std::{
+    fs::{File, OpenOptions},
+    io::BufWriter,
+    process::exit,
 };
 
 fn main() {
@@ -34,7 +37,18 @@ fn main() {
         None => 1000,
     };
 
+    let file = match args.next() {
+        Some(f) => match OpenOptions::new().append(true).create(true).open(f) {
+            Ok(file) => Some(BufWriter::with_capacity(1_000, file)),
+            Err(e) => {
+                println!("Failed to open or create file: {}", e);
+                exit(1)
+            }
+        },
+        None => None,
+    };
+
     let mut machine = Machine::new(program);
 
-    machine.run_until_halt(vec![], limit);
+    machine.run_until_halt(vec![], limit, file);
 }

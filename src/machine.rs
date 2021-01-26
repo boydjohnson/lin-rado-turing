@@ -1,4 +1,4 @@
-use std::io::{BufWriter, Write};
+use std::io::{BufRead, BufWriter, Write};
 
 use crate::{
     program::Program,
@@ -57,9 +57,12 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         tape
     }
 
-    pub fn run_until_halt(&mut self, input: Vec<Sym>, limit: usize) {
-        let mut buffer = BufWriter::with_capacity(1_000, std::io::stdout());
-
+    pub fn run_until_halt<B: Write>(
+        &mut self,
+        input: Vec<Sym>,
+        limit: usize,
+        mut output: Option<B>,
+    ) {
         let mut tape = Self::input_to_tape(input);
         for step in 1..=limit {
             if self.state == S::halt() {
@@ -70,14 +73,14 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
             let state = self.state;
 
             let (new_state, symbol, direction) = self.prog.instruction(state, symbol);
-
-            writeln!(
-                &mut buffer,
-                "step: {}: state={:?}, symbol: {:?}",
-                step, new_state, symbol
-            )
-            .expect("Failed to write to stdout");
-
+            if let Some(buffer) = &mut output {
+                writeln!(
+                    buffer,
+                    "step: {}: state={:?}, symbol: {:?}",
+                    step, new_state, symbol
+                )
+                .expect("Failed to write to stdout");
+            }
             self.state = *new_state;
 
             self.write(&mut tape, *symbol);
