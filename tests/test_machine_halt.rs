@@ -1,10 +1,13 @@
 use lin_rado_turing::{
     machine::Machine,
     program::Program,
-    types::{State, Symbol, ThreeState, TwoState, TwoSymbol},
+    types::{
+        FiveState, FourState, FourSymbol, SixState, State, Symbol, ThreeState, ThreeSymbol,
+        TwoState, TwoSymbol,
+    },
 };
 
-const HALTS_2_2: &[(&str, usize, usize)] = &[
+const HALTS: &[(&str, usize, usize)] = &[
     // 2/2 BB
     ("1RB 1LB 1LA 1RH", 4, 6),
     // 3/2 BB
@@ -46,11 +49,11 @@ const HALTS_2_2: &[(&str, usize, usize)] = &[
     ("0RB 0LA 1RC 0RH 0LC 1RD 0LD 1RE 1LA 0LE", 0, 67),
 ];
 
-const LIMIT: usize = 10000;
+const LIMIT: usize = 1000000;
 
 #[test]
 fn test_machine_halts() {
-    for (prog_str, marks, steps) in HALTS_2_2 {
+    for (prog_str, marks, steps) in HALTS {
         println!("{}", prog_str);
 
         match prog_str.parse::<Program<TwoState, TwoSymbol>>() {
@@ -61,7 +64,63 @@ fn test_machine_halts() {
             Err(_) => (),
         }
 
+        match prog_str.parse::<Program<TwoState, ThreeSymbol>>() {
+            Ok(prog) => {
+                assert_machine(prog, *marks, *steps);
+                continue;
+            }
+            Err(_) => (),
+        }
+
+        match prog_str.parse::<Program<TwoState, FourSymbol>>() {
+            Ok(prog) => {
+                assert_machine(prog, *marks, *steps);
+                continue;
+            }
+            Err(_) => (),
+        }
+
         match prog_str.parse::<Program<ThreeState, TwoSymbol>>() {
+            Ok(prog) => {
+                assert_machine(prog, *marks, *steps);
+                continue;
+            }
+            Err(_) => (),
+        }
+
+        match prog_str.parse::<Program<ThreeState, ThreeSymbol>>() {
+            Ok(prog) => {
+                assert_machine(prog, *marks, *steps);
+                continue;
+            }
+            Err(_) => (),
+        }
+
+        match prog_str.parse::<Program<FourState, TwoSymbol>>() {
+            Ok(prog) => {
+                assert_machine(prog, *marks, *steps);
+                continue;
+            }
+            Err(_) => (),
+        }
+
+        match prog_str.parse::<Program<FourState, ThreeSymbol>>() {
+            Ok(prog) => {
+                assert_machine(prog, *marks, *steps);
+                continue;
+            }
+            Err(_) => (),
+        }
+
+        match prog_str.parse::<Program<FiveState, TwoSymbol>>() {
+            Ok(prog) => {
+                assert_machine(prog, *marks, *steps);
+                continue;
+            }
+            Err(_) => (),
+        }
+
+        match prog_str.parse::<Program<SixState, TwoSymbol>>() {
             Ok(prog) => {
                 assert_machine(prog, *marks, *steps);
                 continue;
