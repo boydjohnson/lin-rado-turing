@@ -9,6 +9,10 @@ where
     S: State,
     Sym: Symbol,
 {
+    pub const fn num(&self) -> (usize, usize) {
+        (S::NUM_STATES, Sym::NUM)
+    }
+
     pub fn instruction(&self, state: S, symbol: Sym) -> &(S, Sym, Direction) {
         self.0.get(&(state, symbol)).expect(
             "An unexpected state, symbol pair was asked for: possibly Halt state was entered",
@@ -26,7 +30,7 @@ where
     type Err = ProgramParseError;
 
     fn from_str(s: &str) -> Result<Self, ProgramParseError> {
-        let mut program_string_split = s.trim().split(" ");
+        let mut program_string_split = s.trim().split(' ');
 
         let mut inner = BTreeMap::new();
 
@@ -47,9 +51,9 @@ where
                         );
                     }
                     None => {
-                        return Err(ProgramParseError::Error(format!(
-                            "Number of State, Symbols did not match up with program."
-                        )))
+                        return Err(ProgramParseError::Error(
+                            "Number of State, Symbols did not match up with program.".to_string(),
+                        ))
                     }
                 }
             }

@@ -10,27 +10,40 @@ pub struct Machine<State, Symbol> {
     prog: Program<State, Symbol>,
     state: State,
     pos: i64,
+    tape: Tape<Symbol>,
 
     halt: Option<Halt>,
 }
 
 impl<S: State, Sym: Symbol> Machine<S, Sym> {
+    pub const fn num(&self) -> (usize, usize) {
+        self.prog.num()
+    }
+
     pub fn new(prog: Program<S, Sym>) -> Self {
         Machine {
             prog,
             state: S::initial_state(),
             pos: 0,
+            tape: Tape::default(),
 
             halt: None,
         }
     }
 
-    fn read<'a>(&self, tape: &'a Tape<Sym>) -> Option<&'a Sym> {
-        tape.read(self.pos)
+    fn read(&self) -> Option<&Sym> {
+        self.tape.read(self.pos)
     }
 
-    fn write(&self, tape: &mut Tape<Sym>, symbol: Sym) {
-        tape.write(self.pos, symbol)
+    pub fn marks(&self) -> usize {
+        self.tape
+            .iter()
+            .filter(|item| Sym::zero() != **item)
+            .count()
+    }
+
+    fn write(&mut self, symbol: Sym) {
+        self.tape.write(self.pos, symbol)
     }
 
     fn move_left(&mut self) {
@@ -41,16 +54,14 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         self.pos += 1;
     }
 
-    fn halt(&mut self) -> Option<Halt> {
+    pub fn halt(&mut self) -> Option<Halt> {
         self.halt
     }
 
-    fn input_to_tape(input: Vec<Sym>) -> Tape<Sym> {
-        let mut tape = Tape::default();
+    fn input_to_tape(&mut self, input: Vec<Sym>) {
         for (i, s) in input.into_iter().enumerate() {
-            tape.write(i as i64, s);
+            self.tape.write(i as i64, s);
         }
-        tape
     }
 
     pub fn run_until_halt<B: Write>(
@@ -59,17 +70,18 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         limit: usize,
         mut output: Option<B>,
     ) {
-        let mut tape = Self::input_to_tape(input);
+        self.input_to_tape(input);
+
         for step in 1..=limit {
             if self.state == S::halt() {
                 self.halt = Some(Halt::new(step - 1, HaltReason::Halt));
                 break;
             }
 
-            let symbol = self.read(&tape).copied().unwrap_or_else(|| Sym::zero());
+            let symbol = self.read().copied().unwrap_or_else(Sym::zero);
             let state = self.state;
 
-            let (new_state, symbol, direction) = self.prog.instruction(state, symbol);
+            let &(new_state, symbol, direction) = self.prog.instruction(state, symbol);
             if let Some(buffer) = &mut output {
                 writeln!(
                     buffer,
@@ -78,9 +90,9 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                 )
                 .expect("Failed to write to stdout");
             }
-            self.state = *new_state;
+            self.state = new_state;
 
-            self.write(&mut tape, *symbol);
+            self.write(symbol);
 
             match direction {
                 crate::types::Direction::Left => self.move_left(),
