@@ -142,4 +142,6 @@ fn assert_machine<S: State, Sym: Symbol>(prog: Program<S, Sym>, marks: usize, st
     let halt = halt.unwrap();
 
     assert_eq!(halt.steps, steps);
+
+    assert_eq!(machine.marks(), marks);
 }
