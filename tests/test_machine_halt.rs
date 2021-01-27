@@ -133,7 +133,7 @@ fn test_machine_halts() {
 fn assert_machine<S: State, Sym: Symbol>(prog: Program<S, Sym>, marks: usize, steps: usize) {
     let mut machine = Machine::new(prog);
 
-    machine.run_until_halt::<std::io::Stdout>(vec![], LIMIT, None);
+    machine.run_until_halt::<std::io::Stdout>(vec![], LIMIT, &mut None);
 
     let halt = machine.halt();
 
