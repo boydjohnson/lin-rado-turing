@@ -64,6 +64,17 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         }
     }
 
+    fn write_to_buffer<B: Write>(output: &mut Option<B>, step: usize, new_state: S, symbol: Sym) {
+        if let Some(buffer) = output {
+            writeln!(
+                buffer,
+                "step: {}: state={:?}, symbol: {:?}",
+                step, new_state, symbol
+            )
+            .expect("Failed to write to stdout");
+        }
+    }
+
     pub fn run_until_halt<B: Write>(
         &mut self,
         input: Vec<Sym>,
@@ -72,24 +83,16 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
     ) {
         self.input_to_tape(input);
 
-        for step in 1..=limit {
-            if self.state == S::halt() {
-                self.halt = Some(Halt::new(step - 1, HaltReason::Halt));
-                break;
-            }
+        Self::write_to_buffer(output, 0, self.state, Sym::zero());
 
+        for step in 1..=limit {
             let symbol = self.read().copied().unwrap_or_else(Sym::zero);
             let state = self.state;
 
             let &(new_state, symbol, direction) = self.prog.instruction(state, symbol);
-            if let Some(buffer) = output {
-                writeln!(
-                    buffer,
-                    "step: {}: state={:?}, symbol: {:?}",
-                    step, new_state, symbol
-                )
-                .expect("Failed to write to stdout");
-            }
+
+            Self::write_to_buffer(output, step, new_state, symbol);
+
             self.state = new_state;
 
             self.write(symbol);
@@ -98,6 +101,16 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                 crate::types::Direction::Left => self.move_left(),
                 crate::types::Direction::Right => self.move_right(),
             }
+
+            // Checks for stopping
+            if self.state == S::halt() {
+                self.halt = Some(Halt::new(step, HaltReason::Halt));
+                break;
+            }
+        }
+
+        if self.halt.is_none() {
+            self.halt = Some(Halt::new(limit, HaltReason::XLimit));
         }
     }
 }
