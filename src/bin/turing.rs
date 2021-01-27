@@ -34,6 +34,8 @@ fn main() {
 
     let check = args.is_present("check-recurrence");
 
+    let verbose = args.is_present("verbose");
+
     let output: Option<Box<dyn Write>> = match args.value_of("output") {
         Some(o) => match o {
             "-" => Some(Box::new(BufWriter::with_capacity(1_000, std::io::stdout()))),
@@ -63,49 +65,49 @@ fn main() {
 
     match program {
         ProgramT::TwoTwo(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::TwoThree(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::TwoFour(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::ThreeTwo(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::ThreeThree(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::ThreeFour(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::FourTwo(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::FourThree(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::FourFour(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::FiveTwo(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::FiveThree(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::FiveFour(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::SixTwo(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::SixThree(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
         ProgramT::SixFour(program) => {
-            run_machine(program, prog_str, limit, output, check);
+            run_machine(program, prog_str, limit, output, verbose, check);
         }
     }
 }

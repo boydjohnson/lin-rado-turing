@@ -138,11 +138,16 @@ pub fn run_machine<S: State, Sym: Symbol>(
     prog_str: &str,
     limit: usize,
     mut output: Option<Box<dyn Write>>,
+    verbose: bool,
     _check_recurrence: bool,
 ) {
     let mut machine = Machine::new(program);
 
-    machine.run_until_halt(vec![], limit, &mut output);
+    if verbose {
+        machine.run_until_halt(vec![], limit, &mut output);
+    } else {
+        machine.run_until_halt::<std::io::Stdout>(vec![], limit, &mut None);
+    }
 
     if let Some(halt) = machine.halt() {
         if let Some(w) = &mut output {
