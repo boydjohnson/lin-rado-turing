@@ -32,7 +32,17 @@ fn main() {
         }
     };
 
-    let check = args.is_present("check-recurrence");
+    let check = match args.value_of("check-recurrence") {
+        Some(s) => match s.parse() {
+            Ok(check) => Some(check),
+            Err(e) => {
+                writeln!(std::io::stderr(), "Error parsing check-recurrence: {}", e)
+                    .expect("Unable to write to stderr");
+                exit(1);
+            }
+        },
+        None => None,
+    };
 
     let verbose = args.is_present("verbose");
 
@@ -124,7 +134,8 @@ fn parse_args<'a>() -> clap::ArgMatches<'a> {
             Arg::with_name("check-recurrence")
                 .short("c")
                 .long("check")
-                .takes_value(false)
+                .takes_value(true)
+                .number_of_values(1)
                 .help("Run the recurrence check, taking more time"),
         )
         .arg(
