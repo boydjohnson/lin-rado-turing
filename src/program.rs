@@ -61,6 +61,12 @@ where
                 }
             }
         }
+        if program_string_split.count() > 0 {
+            return Err(ProgramParseError::Error(
+                "Too many program instructions".into(),
+            ));
+        }
+
         Ok(Program(inner))
     }
 }
@@ -129,5 +135,12 @@ mod tests {
             *prog.instruction(TwoState::A, TwoSymbol::Zero),
             (TwoState::B, TwoSymbol::One, Direction::Right)
         );
+    }
+
+    #[test]
+    fn test_program_parse_too_many() {
+        let program = "1RB 0LA 1RB 0LA 1LB".parse::<Program<TwoState, TwoSymbol>>();
+
+        assert!(program.is_err());
     }
 }
