@@ -9,6 +9,9 @@ edition = "2018"
 [dependencies]
 clap = "2.33"
 
+[features]
+slow-tests = []
+
 [profile.release]
 codegen-units = 1
 lto = true
