@@ -80,6 +80,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         input: Vec<Sym>,
         limit: usize,
         output: &mut Option<B>,
+        check_recurrence: Option<usize>,
     ) {
         self.input_to_tape(input);
 
@@ -152,14 +153,14 @@ pub fn run_machine<S: State, Sym: Symbol>(
     limit: usize,
     mut output: Option<Box<dyn Write>>,
     verbose: bool,
-    _check_recurrence: bool,
+    check_recurrence: Option<usize>,
 ) {
     let mut machine = Machine::new(program);
 
     if verbose {
-        machine.run_until_halt(vec![], limit, &mut output);
+        machine.run_until_halt(vec![], limit, &mut output, check_recurrence);
     } else {
-        machine.run_until_halt::<std::io::Stdout>(vec![], limit, &mut None);
+        machine.run_until_halt::<std::io::Stdout>(vec![], limit, &mut None, check_recurrence);
     }
 
     if let Some(halt) = machine.halt() {
