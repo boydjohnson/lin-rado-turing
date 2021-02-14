@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33"
+itertools = "0.8"
 
 [features]
 slow-tests = []

@@ -32,7 +32,7 @@ pub trait State: Ord + Eq + FromStr + Copy + Debug {
     fn halt() -> Self;
 }
 
-pub trait Symbol: Ord + Eq + FromStr + Copy + Debug {
+pub trait Symbol: Ord + Eq + FromStr + Copy + Debug + ToString {
     const NUM: usize;
 
     fn iter_symbols() -> Box<dyn Iterator<Item = Self>>;
@@ -196,6 +196,15 @@ impl Symbol for TwoSymbol {
     }
 }
 
+impl ToString for TwoSymbol {
+    fn to_string(&self) -> String {
+        match self {
+            TwoSymbol::One => "#".to_owned(),
+            TwoSymbol::Zero => "_".to_owned(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
 pub enum ThreeSymbol {
     Zero,
@@ -212,6 +221,16 @@ impl Symbol for ThreeSymbol {
 
     fn zero() -> Self {
         ThreeSymbol::Zero
+    }
+}
+
+impl ToString for ThreeSymbol {
+    fn to_string(&self) -> String {
+        match self {
+            ThreeSymbol::Zero => "0".to_owned(),
+            ThreeSymbol::One => "1".to_owned(),
+            ThreeSymbol::Two => "2".to_owned(),
+        }
     }
 }
 
@@ -356,6 +375,17 @@ impl FromStr for FourSymbol {
                 "Expected '0', '1', or '2', not {}",
                 a
             ))),
+        }
+    }
+}
+
+impl ToString for FourSymbol {
+    fn to_string(&self) -> String {
+        match self {
+            FourSymbol::Zero => "0".to_owned(),
+            FourSymbol::One => "1".to_owned(),
+            FourSymbol::Two => "2".to_owned(),
+            FourSymbol::Three => "3".to_owned(),
         }
     }
 }
