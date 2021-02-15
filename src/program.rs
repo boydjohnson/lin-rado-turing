@@ -7,11 +7,7 @@ use std::{collections::BTreeMap, str::FromStr};
 #[derive(Debug)]
 pub struct Program<State, Symbol>(BTreeMap<(State, Symbol), (State, Symbol, Direction)>);
 
-impl<S, Sym> Program<S, Sym>
-where
-    S: State,
-    Sym: Symbol,
-{
+impl<S: State, Sym: Symbol> Program<S, Sym> {
     pub const fn num(&self) -> (usize, usize) {
         (S::NUM_STATES, Sym::NUM)
     }
@@ -23,12 +19,9 @@ where
     }
 }
 
-impl<S, Sym> FromStr for Program<S, Sym>
+impl<S: State, Sym: Symbol> FromStr for Program<S, Sym>
 where
-    S: State,
-    Sym: Symbol,
-    ProgramParseError: From<<S as FromStr>::Err>,
-    ProgramParseError: From<<Sym as FromStr>::Err>,
+    ProgramParseError: From<<S as FromStr>::Err> + From<<Sym as FromStr>::Err>,
 {
     type Err = ProgramParseError;
 
@@ -67,7 +60,7 @@ where
             ));
         }
 
-        Ok(Program(inner))
+        Ok(Self(inner))
     }
 }
 
