@@ -68,139 +68,126 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         (BTreeMap::new(), vec![])
     }
 
-    fn recurr_deviations(&self, deviations: Option<&mut Vec<i64>>, init: usize) -> i64 {
-        let pos = self.pos as i64 - init as i64;
-        if let Some(dev) = deviations {
-            dev.push(pos);
-        }
-        pos
-    }
-
     fn recurr_check(
         &mut self,
         step: usize,
         snapshots: Option<&mut Snapshots<S, Sym>>,
         deviations: Option<&Vec<i64>>,
-        check: Option<usize>,
         init: usize,
         beeps: &Beeps<S>,
         dev: i64,
     ) -> Option<Halt> {
-        if let (Some(snaps), Some(deviations), Some(recur)) = (snapshots, deviations, check) {
+        if let (Some(snaps), Some(deviations)) = (snapshots, deviations) {
             let action = (self.state, self.read().copied().unwrap_or_else(Sym::zero));
-            if step >= recur {
-                let mut iter = if let Some(items) = snaps.get(&action) {
-                    Either::Right(items.iter())
-                } else {
-                    Either::Left(std::iter::empty())
-                };
 
-                if let Some((pstep, step, pbeeps, ptape)) = loop {
-                    if let Some((pstep, pinit, pdev, ptape, pbeeps)) = iter.next() {
-                        let (prev, curr) = if dev < *pdev {
-                            let dmax =
-                                deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
+            let mut iter = if let Some(items) = snaps.get(&action) {
+                Either::Right(items.iter())
+            } else {
+                Either::Left(std::iter::empty())
+            };
 
-                            let prev = ptape
-                                .iter_to((*pinit as i64 + dmax) as usize)
-                                .collect::<Vec<_>>();
+            if let Some((pstep, step, pbeeps, ptape)) = loop {
+                if let Some((pstep, pinit, pdev, ptape, pbeeps)) = iter.next() {
+                    let (prev, curr) = if dev < *pdev {
+                        let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
 
-                            let mut curr = self
-                                .tape
-                                .iter_to((init as i64 + dmax + dev - *pdev) as usize)
-                                .collect::<Vec<_>>();
+                        let prev = ptape
+                            .iter_to((*pinit as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
 
-                            let mut first = vec![];
-                            for i in 0..prev.len() {
-                                if curr.get(i).is_none() {
-                                    first.push(Sym::zero());
-                                }
+                        let mut curr = self
+                            .tape
+                            .iter_to((init as i64 + dmax + dev - *pdev) as usize)
+                            .collect::<Vec<_>>();
+
+                        let mut first = vec![];
+                        for i in 0..prev.len() {
+                            if curr.get(i).is_none() {
+                                first.push(Sym::zero());
                             }
+                        }
 
-                            first.append(&mut curr);
-                            (prev, first)
-                        } else if (*pdev) < dev {
-                            let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
+                        first.append(&mut curr);
+                        (prev, first)
+                    } else if (*pdev) < dev {
+                        let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
 
-                            let from_prev = if *pinit as i64 + dmin < 0 {
-                                0
-                            } else {
-                                *pinit as i64 + dmin
-                            };
-
-                            let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
-
-                            let from_curr = if init as i64 + dmin + dev - pdev < 0 {
-                                0
-                            } else {
-                                init as i64 + dmin + dev - pdev
-                            };
-
-                            let mut curr =
-                                self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
-
-                            for i in 0..prev.len() {
-                                if curr.get(i).is_none() {
-                                    curr.push(Sym::zero());
-                                }
-                            }
-
-                            (prev, curr)
+                        let from_prev = if *pinit as i64 + dmin < 0 {
+                            0
                         } else {
-                            let dmax =
-                                deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
-                            let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
-
-                            let from_prev = if *pinit as i64 + dmin < 0 {
-                                0
-                            } else {
-                                *pinit as i64 + dmin
-                            };
-
-                            let prev = ptape
-                                .iter_between(from_prev as usize, (*pinit as i64 + dmax) as usize)
-                                .collect::<Vec<_>>();
-
-                            let from_curr = if init as i64 + dmin < 0 {
-                                0
-                            } else {
-                                init as i64 + dmin
-                            };
-
-                            let curr = self
-                                .tape
-                                .iter_between(from_curr as usize, (init as i64 + dmax) as usize)
-                                .collect::<Vec<_>>();
-
-                            (prev, curr)
+                            *pinit as i64 + dmin
                         };
 
-                        if prev == curr {
-                            break Some((*pstep, step, pbeeps, ptape));
-                        }
-                    } else {
-                        break None;
-                    }
-                } {
-                    self.tape = ptape.clone();
+                        let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
 
-                    let reason = if pbeeps
-                        .keys()
-                        .all(|state| beeps.get(state) > pbeeps.get(state))
-                    {
-                        HaltReason::Recurr
+                        let from_curr = if init as i64 + dmin + dev - pdev < 0 {
+                            0
+                        } else {
+                            init as i64 + dmin + dev - pdev
+                        };
+
+                        let mut curr = self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
+
+                        for i in 0..prev.len() {
+                            if curr.get(i).is_none() {
+                                curr.push(Sym::zero());
+                            }
+                        }
+
+                        (prev, curr)
                     } else {
-                        HaltReason::Quasihalt
+                        let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
+                        let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
+
+                        let from_prev = if *pinit as i64 + dmin < 0 {
+                            0
+                        } else {
+                            *pinit as i64 + dmin
+                        };
+
+                        let prev = ptape
+                            .iter_between(from_prev as usize, (*pinit as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
+
+                        let from_curr = if init as i64 + dmin < 0 {
+                            0
+                        } else {
+                            init as i64 + dmin
+                        };
+
+                        let curr = self
+                            .tape
+                            .iter_between(from_curr as usize, (init as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
+
+                        (prev, curr)
                     };
 
-                    return Some(Halt::new(pstep, reason(step - pstep)));
+                    if prev == curr {
+                        break Some((*pstep, step, pbeeps, ptape));
+                    }
+                } else {
+                    break None;
                 }
+            } {
+                self.tape = ptape.clone();
 
-                snaps
-                    .entry(action)
-                    .and_modify(|v| v.push((step, init, dev, self.tape.clone(), beeps.clone())))
-                    .or_insert_with(|| vec![(step, init, dev, self.tape.clone(), beeps.clone())]);
+                let reason = if pbeeps
+                    .keys()
+                    .all(|state| beeps.get(state) > pbeeps.get(state))
+                {
+                    HaltReason::Recurr
+                } else {
+                    HaltReason::Quasihalt
+                };
+
+                return Some(Halt::new(pstep, reason(step - pstep)));
             }
+
+            snaps
+                .entry(action)
+                .and_modify(|v| v.push((step, init, dev, self.tape.clone(), beeps.clone())))
+                .or_insert_with(|| vec![(step, init, dev, self.tape.clone(), beeps.clone())]);
         }
         None
     }
@@ -272,17 +259,24 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         for step in 0..=limit {
             self.write_tape(output, step);
 
-            let dev = self.recurr_deviations(deviations.as_mut(), init);
+            let dev = self.pos as i64 - init as i64;
 
-            self.halt = self.recurr_check(
-                step,
-                snapshots.as_mut(),
-                deviations.as_ref(),
-                check_recurrence,
-                init,
-                &beeps,
-                dev,
-            );
+            if let Some(ref mut devs) = deviations {
+                devs.push(dev);
+            }
+
+            if let Some(start) = check_recurrence {
+                if step >= start {
+                    self.halt = self.recurr_check(
+                        step,
+                        snapshots.as_mut(),
+                        deviations.as_ref(),
+                        init,
+                        &beeps,
+                        dev,
+                    );
+                }
+            }
             if self.halt.is_some() {
                 break;
             }
