@@ -25,12 +25,11 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
     }
 
     pub fn new(prog: Program<S, Sym>) -> Self {
-        Machine {
+        Self {
             prog,
             state: S::initial_state(),
             pos: 0,
             tape: Tape::default(),
-
             halt: None,
         }
     }
@@ -70,10 +69,11 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
     }
 
     fn recurr_deviations(&self, deviations: Option<&mut Vec<i64>>, init: usize) -> i64 {
+        let pos = self.pos as i64 - init as i64;
         if let Some(dev) = deviations {
-            dev.push(self.pos as i64 - init as i64);
+            dev.push(pos);
         }
-        self.pos as i64 - init as i64
+        pos
     }
 
     fn recurr_check(
@@ -183,14 +183,17 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                     }
                 } {
                     self.tape = ptape.clone();
-                    if pbeeps
+
+                    let reason = if pbeeps
                         .keys()
                         .all(|state| beeps.get(state) > pbeeps.get(state))
                     {
-                        return Some(Halt::new(pstep, HaltReason::Recurr(step - pstep)));
+                        HaltReason::Recurr
                     } else {
-                        return Some(Halt::new(pstep, HaltReason::Quasihalt(step - pstep)));
-                    }
+                        HaltReason::Quasihalt
+                    };
+
+                    return Some(Halt::new(pstep, reason(step - pstep)));
                 }
 
                 snaps
@@ -307,19 +310,16 @@ pub struct Halt {
 }
 
 impl Halt {
-    pub fn new(steps: usize, reason: HaltReason) -> Self {
-        Halt { steps, reason }
+    pub const fn new(steps: usize, reason: HaltReason) -> Self {
+        Self { steps, reason }
     }
 
     pub fn is_halted(&self) -> bool {
         self.reason == HaltReason::Halt
     }
 
-    pub fn is_lr_recurrence(&self) -> bool {
-        match self.reason {
-            HaltReason::Recurr(_) => true,
-            _ => false,
-        }
+    pub const fn is_lr_recurrence(&self) -> bool {
+        matches!(self.reason, HaltReason::Recurr(_))
     }
 
     pub fn is_limit(&self) -> bool {

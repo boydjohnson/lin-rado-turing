@@ -12,8 +12,8 @@ impl FromStr for Direction {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "L" => Ok(Direction::Left),
-            "R" => Ok(Direction::Right),
+            "L" => Ok(Self::Left),
+            "R" => Ok(Self::Right),
             s => Err(ProgramParseError::Error(format!(
                 "Expected 'L' or 'R', found {}",
                 s
@@ -52,9 +52,9 @@ impl FromStr for TwoState {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "A" => Ok(TwoState::A),
-            "B" => Ok(TwoState::B),
-            "H" => Ok(TwoState::H),
+            "A" => Ok(Self::A),
+            "B" => Ok(Self::B),
+            "H" => Ok(Self::H),
             a => Err(ProgramParseError::Error(format!(
                 "Expected 'A', 'B', 'H' not {}",
                 a
@@ -67,15 +67,15 @@ impl State for TwoState {
     const NUM_STATES: usize = 2;
 
     fn initial_state() -> Self {
-        TwoState::A
+        Self::A
     }
 
     fn iter_states() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![TwoState::A, TwoState::B].into_iter())
+        Box::new(vec![Self::A, Self::B].into_iter())
     }
 
     fn halt() -> Self {
-        TwoState::H
+        Self::H
     }
 }
 
@@ -92,10 +92,10 @@ impl FromStr for ThreeState {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "A" => Ok(ThreeState::A),
-            "B" => Ok(ThreeState::B),
-            "C" => Ok(ThreeState::C),
-            "H" => Ok(ThreeState::H),
+            "A" => Ok(Self::A),
+            "B" => Ok(Self::B),
+            "C" => Ok(Self::C),
+            "H" => Ok(Self::H),
             a => Err(ProgramParseError::Error(format!(
                 "Expected 'A', 'B', 'C', or 'H', found {}",
                 a
@@ -108,15 +108,15 @@ impl State for ThreeState {
     const NUM_STATES: usize = 3;
 
     fn initial_state() -> Self {
-        ThreeState::A
+        Self::A
     }
 
     fn iter_states() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![ThreeState::A, ThreeState::B, ThreeState::C].into_iter())
+        Box::new(vec![Self::A, Self::B, Self::C].into_iter())
     }
 
     fn halt() -> Self {
-        ThreeState::H
+        Self::H
     }
 }
 
@@ -137,7 +137,7 @@ impl State for FourState {
     }
 
     fn iter_states() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![FourState::A, FourState::B, FourState::C, FourState::D].into_iter())
+        Box::new(vec![Self::A, Self::B, Self::C, Self::D].into_iter())
     }
 
     fn halt() -> Self {
@@ -150,11 +150,11 @@ impl FromStr for FourState {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "A" => Ok(FourState::A),
-            "B" => Ok(FourState::B),
-            "C" => Ok(FourState::C),
-            "D" => Ok(FourState::D),
-            "H" => Ok(FourState::H),
+            "A" => Ok(Self::A),
+            "B" => Ok(Self::B),
+            "C" => Ok(Self::C),
+            "D" => Ok(Self::D),
+            "H" => Ok(Self::H),
             a => Err(ProgramParseError::Error(format!(
                 "Expected 'A', 'B', 'C', 'D', 'H', found {}",
                 a
@@ -174,8 +174,8 @@ impl FromStr for TwoSymbol {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
-            "0" => Ok(TwoSymbol::Zero),
-            "1" => Ok(TwoSymbol::One),
+            "0" => Ok(Self::Zero),
+            "1" => Ok(Self::One),
             a => Err(ProgramParseError::Error(format!(
                 "Expected '0' or '1', found {}",
                 a
@@ -188,20 +188,21 @@ impl Symbol for TwoSymbol {
     const NUM: usize = 2;
 
     fn iter_symbols() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![TwoSymbol::Zero, TwoSymbol::One].into_iter())
+        Box::new(vec![Self::Zero, Self::One].into_iter())
     }
 
     fn zero() -> Self {
-        TwoSymbol::Zero
+        Self::Zero
     }
 }
 
 impl ToString for TwoSymbol {
     fn to_string(&self) -> String {
         match self {
-            TwoSymbol::One => "#".to_owned(),
-            TwoSymbol::Zero => "_".to_owned(),
+            Self::One => "#",
+            Self::Zero => "_",
         }
+        .to_owned()
     }
 }
 
@@ -220,17 +221,18 @@ impl Symbol for ThreeSymbol {
     }
 
     fn zero() -> Self {
-        ThreeSymbol::Zero
+        Self::Zero
     }
 }
 
 impl ToString for ThreeSymbol {
     fn to_string(&self) -> String {
         match self {
-            ThreeSymbol::Zero => "0".to_owned(),
-            ThreeSymbol::One => "1".to_owned(),
-            ThreeSymbol::Two => "2".to_owned(),
+            Self::Zero => "0",
+            Self::One => "1",
+            Self::Two => "2",
         }
+        .to_owned()
     }
 }
 
@@ -382,10 +384,11 @@ impl FromStr for FourSymbol {
 impl ToString for FourSymbol {
     fn to_string(&self) -> String {
         match self {
-            FourSymbol::Zero => "0".to_owned(),
-            FourSymbol::One => "1".to_owned(),
-            FourSymbol::Two => "2".to_owned(),
-            FourSymbol::Three => "3".to_owned(),
+            Self::Zero => "0",
+            Self::One => "1",
+            Self::Two => "2",
+            Self::Three => "3",
         }
+        .to_owned()
     }
 }
