@@ -68,14 +68,6 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         (BTreeMap::new(), vec![])
     }
 
-    fn recurr_deviations(&self, deviations: Option<&mut Vec<i64>>, init: usize) -> i64 {
-        let pos = self.pos as i64 - init as i64;
-        if let Some(dev) = deviations {
-            dev.push(pos);
-        }
-        pos
-    }
-
     fn recurr_check(
         &mut self,
         step: usize,
@@ -272,7 +264,11 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         for step in 0..=limit {
             self.write_tape(output, step);
 
-            let dev = self.recurr_deviations(deviations.as_mut(), init);
+            let dev = self.pos as i64 - init as i64;
+
+            if let Some(ref mut devs) = deviations {
+                devs.push(dev);
+            }
 
             self.halt = self.recurr_check(
                 step,
