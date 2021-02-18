@@ -72,7 +72,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         &mut self,
         step: usize,
         snaps: &mut Snapshots<S, Sym>,
-        deviations: &Vec<i64>,
+        deviations: &[i64],
         init: usize,
         beeps: &Beeps<S>,
         dev: i64,
