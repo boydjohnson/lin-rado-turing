@@ -202,11 +202,11 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
 
             for (idx, s) in tape_iter.enumerate() {
                 if idx == self.pos {
-                    buffer.push_str("[");
+                    buffer.push('[');
                 }
                 buffer.push_str(&s.to_string());
                 if idx == self.pos {
-                    buffer.push_str("]")
+                    buffer.push(']')
                 }
             }
 
