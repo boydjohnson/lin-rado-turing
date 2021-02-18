@@ -4,7 +4,7 @@ use crate::{
     types::{State, Symbol},
 };
 use itertools::Either;
-use std::{collections::BTreeMap, io::Write};
+use std::{cmp::Ordering, collections::BTreeMap, io::Write};
 
 type Action<S, Sym> = (S, Sym);
 type Beeps<S> = BTreeMap<S, usize>;
@@ -72,7 +72,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         &mut self,
         step: usize,
         snaps: &mut Snapshots<S, Sym>,
-        deviations: &Vec<i64>,
+        deviations: &[i64],
         init: usize,
         beeps: &Beeps<S>,
         dev: i64,
@@ -87,79 +87,83 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
 
         if let Some((pstep, step, pbeeps, ptape)) = loop {
             if let Some((pstep, pinit, pdev, ptape, pbeeps)) = iter.next() {
-                let (prev, curr) = if dev < *pdev {
-                    let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
+                let (prev, curr) = match dev.cmp(pdev) {
+                    std::cmp::Ordering::Less => {
+                        let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
 
-                    let prev = ptape
-                        .iter_to((*pinit as i64 + dmax) as usize)
-                        .collect::<Vec<_>>();
+                        let prev = ptape
+                            .iter_to((*pinit as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
 
-                    let mut curr = self
-                        .tape
-                        .iter_to((init as i64 + dmax + dev - *pdev) as usize)
-                        .collect::<Vec<_>>();
+                        let mut curr = self
+                            .tape
+                            .iter_to((init as i64 + dmax + dev - *pdev) as usize)
+                            .collect::<Vec<_>>();
 
-                    let mut first = vec![];
-                    for i in 0..prev.len() {
-                        if curr.get(i).is_none() {
-                            first.push(Sym::zero());
+                        let mut first = vec![];
+                        for i in 0..prev.len() {
+                            if curr.get(i).is_none() {
+                                first.push(Sym::zero());
+                            }
                         }
+
+                        first.append(&mut curr);
+                        (prev, first)
                     }
+                    Ordering::Greater => {
+                        let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
 
-                    first.append(&mut curr);
-                    (prev, first)
-                } else if (*pdev) < dev {
-                    let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
+                        let from_prev = if *pinit as i64 + dmin < 0 {
+                            0
+                        } else {
+                            *pinit as i64 + dmin
+                        };
 
-                    let from_prev = if *pinit as i64 + dmin < 0 {
-                        0
-                    } else {
-                        *pinit as i64 + dmin
-                    };
+                        let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
 
-                    let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
+                        let from_curr = if init as i64 + dmin + dev - pdev < 0 {
+                            0
+                        } else {
+                            init as i64 + dmin + dev - pdev
+                        };
 
-                    let from_curr = if init as i64 + dmin + dev - pdev < 0 {
-                        0
-                    } else {
-                        init as i64 + dmin + dev - pdev
-                    };
+                        let mut curr = self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
 
-                    let mut curr = self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
-
-                    for i in 0..prev.len() {
-                        if curr.get(i).is_none() {
-                            curr.push(Sym::zero());
+                        for i in 0..prev.len() {
+                            if curr.get(i).is_none() {
+                                curr.push(Sym::zero());
+                            }
                         }
+
+                        (prev, curr)
                     }
+                    Ordering::Equal => {
+                        let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
+                        let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
 
-                    (prev, curr)
-                } else {
-                    let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
-                    let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
+                        let from_prev = if *pinit as i64 + dmin < 0 {
+                            0
+                        } else {
+                            *pinit as i64 + dmin
+                        };
 
-                    let from_prev = if *pinit as i64 + dmin < 0 {
-                        0
-                    } else {
-                        *pinit as i64 + dmin
-                    };
+                        let prev = ptape
+                            .iter_between(from_prev as usize, (*pinit as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
 
-                    let prev = ptape
-                        .iter_between(from_prev as usize, (*pinit as i64 + dmax) as usize)
-                        .collect::<Vec<_>>();
+                        let from_curr = if init as i64 + dmin < 0 {
+                            0
+                        } else {
+                            init as i64 + dmin
+                        };
 
-                    let from_curr = if init as i64 + dmin < 0 {
-                        0
-                    } else {
-                        init as i64 + dmin
-                    };
+                        let curr = self
+                            .tape
+                            .iter_between(from_curr as usize, (init as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
 
-                    let curr = self
-                        .tape
-                        .iter_between(from_curr as usize, (init as i64 + dmax) as usize)
-                        .collect::<Vec<_>>();
-
-                    (prev, curr)
+                        (prev, curr)
+                    }
                 };
 
                 if prev == curr {
@@ -198,11 +202,11 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
 
             for (idx, s) in tape_iter.enumerate() {
                 if idx == self.pos {
-                    buffer.push_str("[");
+                    buffer.push('[');
                 }
                 buffer.push_str(&s.to_string());
                 if idx == self.pos {
-                    buffer.push_str("]")
+                    buffer.push(']')
                 }
             }
 

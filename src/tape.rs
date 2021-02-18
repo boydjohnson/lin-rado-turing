@@ -26,19 +26,19 @@ impl<Sym: Symbol> Tape<Sym> {
         }
     }
 
-    pub fn iter_between<'a>(&'a self, first: usize, last: usize) -> impl Iterator<Item = Sym> + 'a {
+    pub fn iter_between(&'_ self, first: usize, last: usize) -> impl Iterator<Item = Sym> + '_ {
         self.0[first..last.min(self.size() - 1)].iter().cloned()
     }
 
-    pub fn iter_to<'a>(&'a self, to: usize) -> impl Iterator<Item = Sym> + 'a {
+    pub fn iter_to(&'_ self, to: usize) -> impl Iterator<Item = Sym> + '_ {
         self.0[..to.min(self.size() - 1)].iter().cloned()
     }
 
-    pub fn iter_from<'a>(&'a self, from: usize) -> impl Iterator<Item = Sym> + 'a {
+    pub fn iter_from(&'_ self, from: usize) -> impl Iterator<Item = Sym> + '_ {
         self.0[from..].iter().cloned()
     }
 
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = Sym> + 'a {
+    pub fn iter(&'_ self) -> impl Iterator<Item = Sym> + '_ {
         self.0.iter().cloned()
     }
 
