@@ -4,6 +4,7 @@ use crate::{
     types::{State, Symbol},
 };
 use itertools::Either;
+use rayon::prelude::*;
 use std::{cmp::Ordering, collections::BTreeMap, io::Write};
 
 type Action<S, Sym> = (S, Sym);
@@ -19,7 +20,7 @@ pub struct Machine<State, Symbol> {
     halt: Option<Halt>,
 }
 
-impl<S: State, Sym: Symbol> Machine<S, Sym> {
+impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
     pub fn new(prog: Program<S, Sym>) -> Self {
         Self {
             prog,
@@ -62,6 +63,141 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
 
     fn recurr_check_init() -> (Snapshots<S, Sym>, Vec<i64>) {
         (BTreeMap::new(), vec![])
+    }
+
+    fn par_min_deviations(deviations: &[i64], dev: i64, pstep: usize) -> i64 {
+        deviations[pstep..].par_iter().min().copied().unwrap_or(dev)
+    }
+
+    fn par_max_deviations(deviations: &[i64], dev: i64, pstep: usize) -> i64 {
+        deviations[pstep..].par_iter().max().copied().unwrap_or(dev) + 1
+    }
+
+    fn par_recurr_check(
+        &mut self,
+        step: usize,
+        snaps: &mut Snapshots<S, Sym>,
+        deviations: &[i64],
+        init: usize,
+        beeps: &Beeps<S>,
+        dev: i64,
+    ) -> Option<Halt> {
+        let action = (self.state, self.read().copied().unwrap_or_else(Sym::zero));
+
+        let iter = if let Some(items) = snaps.get(&action).cloned() {
+            Either::Right(items.into_iter().enumerate().par_bridge())
+        } else {
+            Either::Left(std::iter::empty().enumerate().par_bridge())
+        };
+
+        if let Some((_, pstep, step, pbeeps, ptape)) = iter
+            .filter_map(|(index, (pstep, pinit, pdev, ptape, pbeeps))| {
+                let (prev, curr) = match dev.cmp(&pdev) {
+                    std::cmp::Ordering::Less => {
+                        let dmax = Self::par_max_deviations(deviations, dev, pstep);
+
+                        let prev = ptape
+                            .iter_to((pinit as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
+
+                        let mut curr = self
+                            .tape
+                            .iter_to((init as i64 + dmax + dev - pdev) as usize)
+                            .collect::<Vec<_>>();
+
+                        let mut first = vec![];
+                        for i in 0..prev.len() {
+                            if curr.get(i).is_none() {
+                                first.push(Sym::zero());
+                            }
+                        }
+
+                        first.append(&mut curr);
+                        (prev, first)
+                    }
+                    Ordering::Greater => {
+                        let dmin = Self::par_min_deviations(deviations, dev, pstep);
+
+                        let from_prev = if pinit as i64 + dmin < 0 {
+                            0
+                        } else {
+                            pinit as i64 + dmin
+                        };
+
+                        let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
+
+                        let from_curr = if init as i64 + dmin + dev - pdev < 0 {
+                            0
+                        } else {
+                            init as i64 + dmin + dev - pdev
+                        };
+
+                        let mut curr = self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
+
+                        for i in 0..prev.len() {
+                            if curr.get(i).is_none() {
+                                curr.push(Sym::zero());
+                            }
+                        }
+
+                        (prev, curr)
+                    }
+                    Ordering::Equal => {
+                        let dmax = Self::par_max_deviations(deviations, dev, pstep);
+                        let dmin = Self::par_min_deviations(deviations, dev, pstep);
+
+                        let from_prev = if pinit as i64 + dmin < 0 {
+                            0
+                        } else {
+                            pinit as i64 + dmin
+                        };
+
+                        let prev = ptape
+                            .iter_between(from_prev as usize, (pinit as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
+
+                        let from_curr = if init as i64 + dmin < 0 {
+                            0
+                        } else {
+                            init as i64 + dmin
+                        };
+
+                        let curr = self
+                            .tape
+                            .iter_between(from_curr as usize, (init as i64 + dmax) as usize)
+                            .collect::<Vec<_>>();
+
+                        (prev, curr)
+                    }
+                };
+
+                if prev == curr {
+                    Some((index, pstep, step, pbeeps, ptape))
+                } else {
+                    None
+                }
+            })
+            .min_by_key(|&(index, _, _, _, _)| index)
+        {
+            self.tape = ptape.clone();
+
+            let reason = if pbeeps
+                .keys()
+                .all(|state| beeps.get(state) > pbeeps.get(state))
+            {
+                HaltReason::Recurr
+            } else {
+                HaltReason::Quasihalt
+            };
+
+            return Some(Halt::new(pstep, reason(step - pstep)));
+        }
+
+        snaps
+            .entry(action)
+            .and_modify(|v| v.push((step, init, dev, self.tape.clone(), beeps.clone())))
+            .or_insert_with(|| vec![(step, init, dev, self.tape.clone(), beeps.clone())]);
+        None
     }
 
     fn recurr_check(
@@ -243,6 +379,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
         limit: usize,
         output: &mut Option<B>,
         check_recurrence: Option<usize>,
+        parallel: bool,
     ) {
         self.input_to_tape(input);
         let mut init = self.tape.size() / 2;
@@ -271,7 +408,12 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                 (check_recurrence, &mut snapshots, &deviations)
             {
                 if step >= start {
-                    self.halt = self.recurr_check(step, snaps, deviations, init, &beeps, dev);
+                    if parallel {
+                        self.halt =
+                            self.par_recurr_check(step, snaps, deviations, init, &beeps, dev);
+                    } else {
+                        self.halt = self.recurr_check(step, snaps, deviations, init, &beeps, dev);
+                    }
                 }
             }
             if self.halt.is_some() {
@@ -326,20 +468,27 @@ pub enum HaltReason {
     Quasihalt(usize),
 }
 
-pub fn run_machine<S: State, Sym: Symbol>(
+pub fn run_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
     program: Program<S, Sym>,
     prog_str: &str,
     limit: usize,
     mut output: Option<Box<dyn Write>>,
     verbose: bool,
     check_recurrence: Option<usize>,
+    parallel: bool,
 ) {
     let mut machine = Machine::new(program);
 
     if verbose {
-        machine.run_until_halt(vec![], limit, &mut output, check_recurrence);
+        machine.run_until_halt(vec![], limit, &mut output, check_recurrence, parallel);
     } else {
-        machine.run_until_halt::<std::io::Stdout>(vec![], limit, &mut None, check_recurrence);
+        machine.run_until_halt::<std::io::Stdout>(
+            vec![],
+            limit,
+            &mut None,
+            check_recurrence,
+            parallel,
+        );
     }
 
     if let Some(halt) = machine.halt() {

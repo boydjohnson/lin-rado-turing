@@ -81,7 +81,7 @@ const HALTS_SLOWLY: &[(&str, usize, usize, &str)] = &[
 #[test]
 fn test_machine_halts() {
     for &(prog_str, marks, steps, complexity) in HALTS {
-        parse_program_and_assert(prog_str, marks, steps, complexity);
+        parse_program_and_assert(prog_str, marks, steps, complexity, false);
     }
 }
 
@@ -89,14 +89,19 @@ fn test_machine_halts() {
 #[cfg_attr(not(feature = "slow-tests"), ignore)]
 fn test_machine_halts_slowly() {
     for &(prog_str, marks, steps, complexity) in HALTS_SLOWLY {
-        parse_program_and_assert(prog_str, marks, steps, complexity);
+        parse_program_and_assert(prog_str, marks, steps, complexity, false);
     }
 }
 
-fn assert_machine<S: State, Sym: Symbol>(prog: Program<S, Sym>, marks: usize, steps: usize) {
+fn assert_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
+    prog: Program<S, Sym>,
+    marks: usize,
+    steps: usize,
+    parallel: bool,
+) {
     let mut machine = Machine::new(prog);
 
-    machine.run_until_halt::<std::io::Stdout>(vec![], steps, &mut None, None);
+    machine.run_until_halt::<std::io::Stdout>(vec![], steps, &mut None, None, parallel);
 
     let halt = machine.halt();
 
@@ -109,24 +114,30 @@ fn assert_machine<S: State, Sym: Symbol>(prog: Program<S, Sym>, marks: usize, st
     assert_eq!(machine.marks(), marks);
 }
 
-fn parse_program_and_assert(prog_str: &str, marks: usize, steps: usize, complexity: &str) {
+fn parse_program_and_assert(
+    prog_str: &str,
+    marks: usize,
+    steps: usize,
+    complexity: &str,
+    parallel: bool,
+) {
     let program = parse_program(prog_str, complexity).unwrap();
 
     match program {
-        ProgramT::TwoTwo(prog) => assert_machine(prog, marks, steps),
-        ProgramT::TwoThree(prog) => assert_machine(prog, marks, steps),
-        ProgramT::TwoFour(prog) => assert_machine(prog, marks, steps),
-        ProgramT::ThreeTwo(prog) => assert_machine(prog, marks, steps),
-        ProgramT::ThreeThree(prog) => assert_machine(prog, marks, steps),
-        ProgramT::ThreeFour(prog) => assert_machine(prog, marks, steps),
-        ProgramT::FourTwo(prog) => assert_machine(prog, marks, steps),
-        ProgramT::FourThree(prog) => assert_machine(prog, marks, steps),
-        ProgramT::FourFour(prog) => assert_machine(prog, marks, steps),
-        ProgramT::FiveTwo(prog) => assert_machine(prog, marks, steps),
-        ProgramT::FiveThree(prog) => assert_machine(prog, marks, steps),
-        ProgramT::FiveFour(prog) => assert_machine(prog, marks, steps),
-        ProgramT::SixTwo(prog) => assert_machine(prog, marks, steps),
-        ProgramT::SixThree(prog) => assert_machine(prog, marks, steps),
-        ProgramT::SixFour(prog) => assert_machine(prog, marks, steps),
+        ProgramT::TwoTwo(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::TwoThree(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::TwoFour(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::ThreeTwo(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::ThreeThree(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::ThreeFour(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::FourTwo(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::FourThree(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::FourFour(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::FiveTwo(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::FiveThree(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::FiveFour(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::SixTwo(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::SixThree(prog) => assert_machine(prog, marks, steps, parallel),
+        ProgramT::SixFour(prog) => assert_machine(prog, marks, steps, parallel),
     }
 }

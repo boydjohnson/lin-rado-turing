@@ -44,6 +44,8 @@ fn main() {
         None => None,
     };
 
+    let parallel = args.is_present("parallel");
+
     let verbose = args.is_present("verbose");
 
     let output: Option<Box<dyn Write>> = match args.value_of("output") {
@@ -75,49 +77,49 @@ fn main() {
 
     match program {
         ProgramT::TwoTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::TwoThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::TwoFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::ThreeTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::ThreeThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::ThreeFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::FourTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::FourThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::FourFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::FiveTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::FiveThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::FiveFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::SixTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::SixThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
         ProgramT::SixFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check);
+            run_machine(program, prog_str, limit, output, verbose, check, parallel);
         }
     }
 }
@@ -157,6 +159,13 @@ fn parse_args<'a>() -> clap::ArgMatches<'a> {
                 .long("verbose")
                 .takes_value(false)
                 .help("Log each step's state and symbol."),
+        )
+        .arg(
+            Arg::with_name("parallel")
+                .short("p")
+                .long("parallel")
+                .takes_value(false)
+                .help("Run the recurrence check in parallel"),
         )
         .get_matches()
 }
