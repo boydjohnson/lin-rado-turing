@@ -115,11 +115,11 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
 
                         let from_prev = *pinit as i64 + dmin;
 
-                        let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
+                        let prev = ptape.iter_from(from_prev).collect::<Vec<_>>();
 
                         let from_curr = init as i64 + dmin + dev - pdev;
 
-                        let mut curr = self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
+                        let mut curr = self.tape.iter_from(from_curr).collect::<Vec<_>>();
 
                         for i in 0..prev.len() {
                             if curr.get(i).is_none() {
@@ -136,14 +136,14 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                         let from_prev = *pinit as i64 + dmin;
 
                         let prev = ptape
-                            .iter_between(from_prev as usize, (*pinit as i64 + dmax) as usize)
+                            .iter_between(from_prev, *pinit as i64 + dmax)
                             .collect::<Vec<_>>();
 
                         let from_curr = init as i64 + dmin;
 
                         let curr = self
                             .tape
-                            .iter_between(from_curr as usize, (init as i64 + dmax) as usize)
+                            .iter_between(from_curr, init as i64 + dmax)
                             .collect::<Vec<_>>();
 
                         (prev, curr)

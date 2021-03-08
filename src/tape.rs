@@ -26,16 +26,28 @@ impl<Sym: Symbol> Tape<Sym> {
         }
     }
 
-    pub fn iter_between(&'_ self, first: usize, last: usize) -> impl Iterator<Item = Sym> + '_ {
-        self.0[first..last.min(self.size() - 1)].iter().cloned()
+    pub fn iter_between(&'_ self, first: i64, last: i64) -> impl Iterator<Item = Sym> + '_ {
+        (first..last).map(move |i| {
+            if i < 0 {
+                Sym::zero()
+            } else {
+                self.0.get(i as usize).cloned().unwrap_or_else(Sym::zero)
+            }
+        })
     }
 
     pub fn iter_to(&'_ self, to: usize) -> impl Iterator<Item = Sym> + '_ {
-        self.0[..to.min(self.size() - 1)].iter().cloned()
+        (0..to).map(move |i| self.0.get(i).cloned().unwrap_or_else(Sym::zero))
     }
 
-    pub fn iter_from(&'_ self, from: usize) -> impl Iterator<Item = Sym> + '_ {
-        self.0[from..].iter().cloned()
+    pub fn iter_from(&'_ self, from: i64) -> impl Iterator<Item = Sym> + '_ {
+        (from..self.0.len() as i64).map(move |i| {
+            if i < 0 {
+                Sym::zero()
+            } else {
+                self.0.get(i as usize).cloned().unwrap_or_else(Sym::zero)
+            }
+        })
     }
 
     pub fn iter(&'_ self) -> impl Iterator<Item = Sym> + '_ {
