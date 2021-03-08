@@ -113,19 +113,11 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                     Ordering::Greater => {
                         let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
 
-                        let from_prev = if *pinit as i64 + dmin < 0 {
-                            0
-                        } else {
-                            *pinit as i64 + dmin
-                        };
+                        let from_prev = *pinit as i64 + dmin;
 
                         let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
 
-                        let from_curr = if init as i64 + dmin + dev - pdev < 0 {
-                            0
-                        } else {
-                            init as i64 + dmin + dev - pdev
-                        };
+                        let from_curr = init as i64 + dmin + dev - pdev;
 
                         let mut curr = self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
 
@@ -141,21 +133,13 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                         let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
                         let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
 
-                        let from_prev = if *pinit as i64 + dmin < 0 {
-                            0
-                        } else {
-                            *pinit as i64 + dmin
-                        };
+                        let from_prev = *pinit as i64 + dmin;
 
                         let prev = ptape
                             .iter_between(from_prev as usize, (*pinit as i64 + dmax) as usize)
                             .collect::<Vec<_>>();
 
-                        let from_curr = if init as i64 + dmin < 0 {
-                            0
-                        } else {
-                            init as i64 + dmin
-                        };
+                        let from_curr = init as i64 + dmin;
 
                         let curr = self
                             .tape
