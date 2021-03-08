@@ -5,7 +5,7 @@ pub struct Tape<Symbol>(Vec<Symbol>);
 
 impl<Sym: Symbol> Default for Tape<Sym> {
     fn default() -> Self {
-        Self((0..500).map(|_| Sym::zero()).collect::<Vec<_>>())
+        Self((0..1).map(|_| Sym::zero()).collect::<Vec<_>>())
     }
 }
 
