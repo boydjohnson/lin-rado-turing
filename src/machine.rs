@@ -91,7 +91,7 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                     std::cmp::Ordering::Less => {
                         let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
 
-                        let prev = ptape
+                        let mut prev = ptape
                             .iter_to((*pinit as i64 + dmax) as usize)
                             .collect::<Vec<_>>();
 
@@ -100,39 +100,51 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                             .iter_to((init as i64 + dmax + dev - *pdev) as usize)
                             .collect::<Vec<_>>();
 
-                        let mut first = vec![];
-                        for i in 0..prev.len() {
-                            if curr.get(i).is_none() {
-                                first.push(Sym::zero());
+                        match curr.len().cmp(&prev.len()) {
+                            Ordering::Greater => {
+                                let mut prep = (0..(curr.len() - prev.len()))
+                                    .map(|_| Sym::zero())
+                                    .collect::<Vec<_>>();
+                                prep.append(&mut prev);
+                                prev = prep;
                             }
+                            Ordering::Less => {
+                                let mut prep = (0..(prev.len() - curr.len()))
+                                    .map(|_| Sym::zero())
+                                    .collect::<Vec<_>>();
+                                prep.append(&mut curr);
+                                curr = prep;
+                            }
+                            Ordering::Equal => (),
                         }
 
-                        first.append(&mut curr);
-                        (prev, first)
+                        (prev, curr)
                     }
                     Ordering::Greater => {
                         let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
 
-                        let from_prev = if *pinit as i64 + dmin < 0 {
-                            0
-                        } else {
-                            *pinit as i64 + dmin
-                        };
+                        let from_prev = *pinit as i64 + dmin;
 
-                        let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
+                        let mut prev = ptape.iter_from(from_prev).collect::<Vec<_>>();
 
-                        let from_curr = if init as i64 + dmin + dev - pdev < 0 {
-                            0
-                        } else {
-                            init as i64 + dmin + dev - pdev
-                        };
+                        let from_curr = init as i64 + dmin + dev - pdev;
 
-                        let mut curr = self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
+                        let mut curr = self.tape.iter_from(from_curr).collect::<Vec<_>>();
 
-                        for i in 0..prev.len() {
-                            if curr.get(i).is_none() {
-                                curr.push(Sym::zero());
+                        match curr.len().cmp(&prev.len()) {
+                            Ordering::Greater => {
+                                let mut app = (0..(curr.len() - prev.len()))
+                                    .map(|_| Sym::zero())
+                                    .collect::<Vec<_>>();
+                                prev.append(&mut app);
                             }
+                            Ordering::Less => {
+                                let mut app = (0..(prev.len() - curr.len()))
+                                    .map(|_| Sym::zero())
+                                    .collect::<Vec<_>>();
+                                curr.append(&mut app);
+                            }
+                            Ordering::Equal => (),
                         }
 
                         (prev, curr)
@@ -141,25 +153,17 @@ impl<S: State, Sym: Symbol> Machine<S, Sym> {
                         let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
                         let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
 
-                        let from_prev = if *pinit as i64 + dmin < 0 {
-                            0
-                        } else {
-                            *pinit as i64 + dmin
-                        };
+                        let from_prev = *pinit as i64 + dmin;
 
                         let prev = ptape
-                            .iter_between(from_prev as usize, (*pinit as i64 + dmax) as usize)
+                            .iter_between(from_prev, *pinit as i64 + dmax)
                             .collect::<Vec<_>>();
 
-                        let from_curr = if init as i64 + dmin < 0 {
-                            0
-                        } else {
-                            init as i64 + dmin
-                        };
+                        let from_curr = init as i64 + dmin;
 
                         let curr = self
                             .tape
-                            .iter_between(from_curr as usize, (init as i64 + dmax) as usize)
+                            .iter_between(from_curr, init as i64 + dmax)
                             .collect::<Vec<_>>();
 
                         (prev, curr)
