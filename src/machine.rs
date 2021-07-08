@@ -20,10 +20,6 @@ pub struct Machine<State, Symbol> {
 }
 
 impl<S: State, Sym: Symbol> Machine<S, Sym> {
-    pub const fn num(&self) -> (usize, usize) {
-        self.prog.num()
-    }
-
     pub fn new(prog: Program<S, Sym>) -> Self {
         Self {
             prog,
