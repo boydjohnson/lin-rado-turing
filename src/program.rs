@@ -8,10 +8,6 @@ use std::{collections::BTreeMap, str::FromStr};
 pub struct Program<State, Symbol>(BTreeMap<(State, Symbol), (State, Symbol, Direction)>);
 
 impl<S: State, Sym: Symbol> Program<S, Sym> {
-    pub const fn num(&self) -> (usize, usize) {
-        (S::NUM_STATES, Sym::NUM)
-    }
-
     pub fn instruction(&self, state: S, symbol: Sym) -> &(S, Sym, Direction) {
         self.0.get(&(state, symbol)).expect(
             "An unexpected state, symbol pair was asked for: possibly Halt state was entered",
