@@ -84,113 +84,115 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
     ) -> Option<Halt> {
         let action = (self.state, self.read().copied().unwrap_or_else(Sym::zero));
 
-        let iter = if let Some(items) = snaps.get(&action).cloned() {
-            Either::Right(items.into_iter().enumerate().par_bridge())
-        } else {
-            Either::Left(std::iter::empty().enumerate().par_bridge())
-        };
+        if let Some(items) = snaps.get(&action).cloned() {
+            let iter = items.par_iter();
 
-        if let Some((_, pstep, step, pbeeps, ptape)) = iter
-            .filter_map(|(index, (pstep, pinit, pdev, ptape, pbeeps))| {
-                let (prev, curr) = match dev.cmp(&pdev) {
-                    std::cmp::Ordering::Less => {
-                        let dmax = Self::par_max_deviations(deviations, dev, pstep);
+            if let Some((pstep, step, pbeeps, ptape)) = iter
+                .filter_map(|(pstep, pinit, pdev, ptape, pbeeps)| {
+                    let (prev, curr) = match dev.cmp(pdev) {
+                        std::cmp::Ordering::Less => {
+                            let dmax = Self::par_max_deviations(deviations, dev, *pstep);
 
-                        let prev = ptape
-                            .iter_to((pinit as i64 + dmax) as usize)
-                            .collect::<Vec<_>>();
+                            let mut prev = ptape
+                                .iter_to((*pinit as i64 + dmax) as usize)
+                                .collect::<Vec<_>>();
 
-                        let mut curr = self
-                            .tape
-                            .iter_to((init as i64 + dmax + dev - pdev) as usize)
-                            .collect::<Vec<_>>();
+                            let mut curr = self
+                                .tape
+                                .iter_to((init as i64 + dmax + dev - *pdev) as usize)
+                                .collect::<Vec<_>>();
 
-                        let mut first = vec![];
-                        for i in 0..prev.len() {
-                            if curr.get(i).is_none() {
-                                first.push(Sym::zero());
+                            match curr.len().cmp(&prev.len()) {
+                                Ordering::Greater => {
+                                    let mut prep = (0..(curr.len() - prev.len()))
+                                        .map(|_| Sym::zero())
+                                        .collect::<Vec<_>>();
+                                    prep.append(&mut prev);
+                                    prev = prep;
+                                }
+                                Ordering::Less => {
+                                    let mut prep = (0..(prev.len() - curr.len()))
+                                        .map(|_| Sym::zero())
+                                        .collect::<Vec<_>>();
+                                    prep.append(&mut curr);
+                                    curr = prep;
+                                }
+                                Ordering::Equal => (),
                             }
+
+                            (prev, curr)
                         }
+                        Ordering::Greater => {
+                            let dmin = Self::par_min_deviations(deviations, dev, *pstep);
 
-                        first.append(&mut curr);
-                        (prev, first)
-                    }
-                    Ordering::Greater => {
-                        let dmin = Self::par_min_deviations(deviations, dev, pstep);
+                            let from_prev = *pinit as i64 + dmin;
 
-                        let from_prev = if pinit as i64 + dmin < 0 {
-                            0
-                        } else {
-                            pinit as i64 + dmin
-                        };
+                            let mut prev = ptape.iter_from(from_prev).collect::<Vec<_>>();
 
-                        let prev = ptape.iter_from(from_prev as usize).collect::<Vec<_>>();
+                            let from_curr = init as i64 + dmin + dev - pdev;
 
-                        let from_curr = if init as i64 + dmin + dev - pdev < 0 {
-                            0
-                        } else {
-                            init as i64 + dmin + dev - pdev
-                        };
+                            let mut curr = self.tape.iter_from(from_curr).collect::<Vec<_>>();
 
-                        let mut curr = self.tape.iter_from(from_curr as usize).collect::<Vec<_>>();
-
-                        for i in 0..prev.len() {
-                            if curr.get(i).is_none() {
-                                curr.push(Sym::zero());
+                            match curr.len().cmp(&prev.len()) {
+                                Ordering::Greater => {
+                                    let mut app = (0..(curr.len() - prev.len()))
+                                        .map(|_| Sym::zero())
+                                        .collect::<Vec<_>>();
+                                    prev.append(&mut app);
+                                }
+                                Ordering::Less => {
+                                    let mut app = (0..(prev.len() - curr.len()))
+                                        .map(|_| Sym::zero())
+                                        .collect::<Vec<_>>();
+                                    curr.append(&mut app);
+                                }
+                                Ordering::Equal => (),
                             }
+
+                            (prev, curr)
                         }
+                        Ordering::Equal => {
+                            let dmax = Self::par_max_deviations(deviations, dev, *pstep);
+                            let dmin = Self::par_min_deviations(deviations, dev, *pstep);
 
-                        (prev, curr)
+                            let from_prev = *pinit as i64 + dmin;
+
+                            let prev = ptape
+                                .iter_between(from_prev, *pinit as i64 + dmax)
+                                .collect::<Vec<_>>();
+
+                            let from_curr = init as i64 + dmin;
+
+                            let curr = self
+                                .tape
+                                .iter_between(from_curr, init as i64 + dmax)
+                                .collect::<Vec<_>>();
+
+                            (prev, curr)
+                        }
+                    };
+
+                    if prev == curr {
+                        Some((pstep, step, pbeeps, ptape))
+                    } else {
+                        None
                     }
-                    Ordering::Equal => {
-                        let dmax = Self::par_max_deviations(deviations, dev, pstep);
-                        let dmin = Self::par_min_deviations(deviations, dev, pstep);
+                })
+                .min_by_key(|&(pstep, _, _, _)| pstep)
+            {
+                self.tape = ptape.clone();
 
-                        let from_prev = if pinit as i64 + dmin < 0 {
-                            0
-                        } else {
-                            pinit as i64 + dmin
-                        };
-
-                        let prev = ptape
-                            .iter_between(from_prev as usize, (pinit as i64 + dmax) as usize)
-                            .collect::<Vec<_>>();
-
-                        let from_curr = if init as i64 + dmin < 0 {
-                            0
-                        } else {
-                            init as i64 + dmin
-                        };
-
-                        let curr = self
-                            .tape
-                            .iter_between(from_curr as usize, (init as i64 + dmax) as usize)
-                            .collect::<Vec<_>>();
-
-                        (prev, curr)
-                    }
+                let reason = if pbeeps
+                    .keys()
+                    .all(|state| beeps.get(state) > pbeeps.get(state))
+                {
+                    HaltReason::Recurr
+                } else {
+                    HaltReason::Quasihalt
                 };
 
-                if prev == curr {
-                    Some((index, pstep, step, pbeeps, ptape))
-                } else {
-                    None
-                }
-            })
-            .min_by_key(|&(index, _, _, _, _)| index)
-        {
-            self.tape = ptape.clone();
-
-            let reason = if pbeeps
-                .keys()
-                .all(|state| beeps.get(state) > pbeeps.get(state))
-            {
-                HaltReason::Recurr
-            } else {
-                HaltReason::Quasihalt
-            };
-
-            return Some(Halt::new(pstep, reason(step - pstep)));
+                return Some(Halt::new(*pstep, reason(step - pstep)));
+            }
         }
 
         snaps
