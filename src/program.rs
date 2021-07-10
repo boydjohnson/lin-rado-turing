@@ -5,7 +5,7 @@ use crate::types::{
 use std::{collections::BTreeMap, str::FromStr};
 
 #[derive(Debug)]
-pub struct Program<State, Symbol>(BTreeMap<(State, Symbol), (State, Symbol, Direction)>);
+pub struct Program<State, Symbol>(pub BTreeMap<(State, Symbol), (State, Symbol, Direction)>);
 
 impl<S: State, Sym: Symbol> Program<S, Sym> {
     pub fn instruction(&self, state: S, symbol: Sym) -> &(S, Sym, Direction) {
