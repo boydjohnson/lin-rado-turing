@@ -48,6 +48,17 @@ fn get_graph_information<S: State, Sym: Symbol>(prog_str: &str, program: Program
     let is_cyclic = petgraph::algo::is_cyclic_directed(&graph);
 
     println!("{}: cyclic({})", prog_str, is_cyclic);
+
+    let mut file = std::fs::File::create(format!("{}.dot", prog_str)).unwrap();
+
+    let dot = format!("{:?}", petgraph::dot::Dot::with_config(&graph, &[petgraph::dot::Config::EdgeNoLabel]));
+
+    let index = dot.rfind('}').unwrap();
+
+    let (dot, _) = dot.split_at(index);
+
+    file.write_all(format!("{}\nlabelloc=\"t\";\nlabel=\"{}\";\n}}", dot, prog_str).as_bytes())
+        .unwrap();
 }
 
 fn main() {
