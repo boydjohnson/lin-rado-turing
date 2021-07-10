@@ -56,21 +56,36 @@ const QUASIHALTING: &[(&str, usize, usize, usize, &str)] = &[
 fn test_machine_quasihalts() {
     for (prog_str, marks, steps, period, complexity) in QUASIHALTING {
         println!("{}", prog_str);
-        parse_program_and_assert(prog_str, *marks, *steps, *period, complexity);
+        parse_program_and_assert(prog_str, *marks, *steps, *period, complexity, false);
     }
 }
 
-fn assert_machine<S: State, Sym: Symbol>(
+#[test]
+fn test_machine_quasihalts_parallel() {
+    for (prog_str, marks, steps, period, complexity) in QUASIHALTING {
+        println!("{}", prog_str);
+        parse_program_and_assert(prog_str, *marks, *steps, *period, complexity, true);
+    }
+}
+
+fn assert_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
     prog: Program<S, Sym>,
     marks: usize,
     steps: usize,
     period: usize,
+    parallel: bool,
 ) {
     let mut machine = Machine::new(prog);
 
     let check = if steps < 256 { Some(0) } else { Some(steps) };
 
-    machine.run_until_halt::<std::io::Stdout>(vec![], steps + 2 * period, &mut None, check);
+    machine.run_until_halt::<std::io::Stdout>(
+        vec![],
+        steps + 2 * period,
+        &mut None,
+        check,
+        parallel,
+    );
 
     let halt = machine.halt();
 
@@ -90,24 +105,25 @@ fn parse_program_and_assert(
     steps: usize,
     period: usize,
     complexity: &str,
+    parallel: bool,
 ) {
     let program = parse_program(prog_str, complexity).unwrap();
 
     match program {
-        ProgramT::TwoTwo(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::TwoThree(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::TwoFour(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::ThreeTwo(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::ThreeThree(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::ThreeFour(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::FourTwo(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::FourThree(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::FourFour(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::FiveTwo(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::FiveThree(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::FiveFour(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::SixTwo(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::SixThree(prog) => assert_machine(prog, marks, steps, period),
-        ProgramT::SixFour(prog) => assert_machine(prog, marks, steps, period),
+        ProgramT::TwoTwo(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::TwoThree(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::TwoFour(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::ThreeTwo(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::ThreeThree(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::ThreeFour(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::FourTwo(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::FourThree(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::FourFour(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::FiveTwo(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::FiveThree(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::FiveFour(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::SixTwo(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::SixThree(prog) => assert_machine(prog, marks, steps, period, parallel),
+        ProgramT::SixFour(prog) => assert_machine(prog, marks, steps, period, parallel),
     }
 }
