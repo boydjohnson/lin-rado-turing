@@ -44,6 +44,17 @@ fn main() {
         None => None,
     };
 
+    let blank = match args.value_of("blank") {
+        Some(s) => match s.parse() {
+            Ok(blank) => Some(blank),
+            Err(e) => {
+                eprintln!("Error parsing --blank: {}", e);
+                exit(1)
+            }
+        },
+        None => None,
+    };
+
     let parallel = args.is_present("parallel");
 
     let verbose = args.is_present("verbose");
@@ -77,49 +88,79 @@ fn main() {
 
     match program {
         ProgramT::TwoTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::TwoThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::TwoFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::ThreeTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::ThreeThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::ThreeFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::FourTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::FourThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::FourFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::FiveTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::FiveThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::FiveFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::SixTwo(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::SixThree(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
         ProgramT::SixFour(program) => {
-            run_machine(program, prog_str, limit, output, verbose, check, parallel);
+            run_machine(
+                program, prog_str, limit, output, verbose, check, blank, parallel,
+            );
         }
     }
 }
@@ -150,6 +191,13 @@ fn parse_args<'a>() -> clap::ArgMatches<'a> {
             Arg::with_name("limit")
                 .help("Number of steps to limit the VM to.")
                 .long("limit")
+                .takes_value(true)
+                .number_of_values(1),
+        )
+        .arg(
+            Arg::with_name("blank")
+                .help("Check blanking beaver starting at this step")
+                .long("blank")
                 .takes_value(true)
                 .number_of_values(1),
         )

@@ -101,7 +101,7 @@ fn assert_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
 ) {
     let mut machine = Machine::new(prog);
 
-    machine.run_until_halt::<std::io::Stdout>(vec![], steps, &mut None, None, parallel);
+    machine.run_until_halt::<std::io::Stdout>(vec![], steps, &mut None, None, None, parallel);
 
     let halt = machine.halt();
 

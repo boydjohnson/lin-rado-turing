@@ -352,13 +352,21 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
         }
     }
 
-    fn run_turing_step(&mut self, init: &mut usize) {
-        let symbol = self.read().copied().unwrap_or_else(Sym::zero);
+    fn run_turing_step(&mut self, init: &mut usize, marks: &mut usize) {
+        let read_symbol = self.read().copied().unwrap_or_else(Sym::zero);
         let state = self.state;
 
-        let &(new_state, symbol, direction) = self.prog.instruction(state, symbol);
+        let &(new_state, symbol, direction) = self.prog.instruction(state, read_symbol);
 
         self.state = new_state;
+
+        if (Sym::zero(), Sym::zero()) == (read_symbol, symbol) {
+        } else if Sym::zero() == read_symbol && Sym::zero() != symbol {
+            *marks += 1;
+        } else if Sym::zero() != read_symbol && Sym::zero() == symbol {
+            *marks -= 1;
+        } else {
+        }
 
         self.write(symbol);
 
@@ -381,12 +389,15 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
         limit: usize,
         output: &mut Option<B>,
         check_recurrence: Option<usize>,
+        check_blank: Option<usize>,
         parallel: bool,
     ) {
         self.input_to_tape(input);
         let mut init = self.tape.size() / 2;
 
         self.pos = init;
+
+        let mut marks = 0;
 
         let mut beeps: Beeps<S> = BTreeMap::new();
 
@@ -423,9 +434,17 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
             }
 
             beeps.insert(self.state, step);
-            self.run_turing_step(&mut init);
+            self.run_turing_step(&mut init, &mut marks);
 
             // Checks for stopping
+
+            if let Some(s) = check_blank {
+                if s <= step && marks == 0 {
+                    self.halt = Some(Halt::new(step + 1, HaltReason::Blanking));
+                    break;
+                }
+            }
+
             if self.state == S::halt() {
                 self.halt = Some(Halt::new(step + 1, HaltReason::Halt));
                 break;
@@ -468,8 +487,10 @@ pub enum HaltReason {
     Recurr(usize),
     XLimit,
     Quasihalt(usize),
+    Blanking,
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn run_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
     program: Program<S, Sym>,
     prog_str: &str,
@@ -477,18 +498,27 @@ pub fn run_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
     mut output: Option<Box<dyn Write>>,
     verbose: bool,
     check_recurrence: Option<usize>,
+    check_blank: Option<usize>,
     parallel: bool,
 ) {
     let mut machine = Machine::new(program);
 
     if verbose {
-        machine.run_until_halt(vec![], limit, &mut output, check_recurrence, parallel);
+        machine.run_until_halt(
+            vec![],
+            limit,
+            &mut output,
+            check_recurrence,
+            check_blank,
+            parallel,
+        );
     } else {
         machine.run_until_halt::<std::io::Stdout>(
             vec![],
             limit,
             &mut None,
             check_recurrence,
+            check_blank,
             parallel,
         );
     }
