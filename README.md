@@ -1,7 +1,6 @@
 # A tool for running Turing Machines
 
 ```
-turing -h
 turing 
 Turing Machine VM
 
@@ -9,11 +8,13 @@ USAGE:
     turing [FLAGS] [OPTIONS] <complexity> <program> [output]
 
 FLAGS:
-    -h, --help       Prints help information
-    -V, --version    Prints version information
-    -v, --verbose    Log each step's state and symbol.
+    -h, --help        Prints help information
+    -p, --parallel    Run the recurrence check in parallel
+    -V, --version     Prints version information
+    -v, --verbose     Log each step's state and symbol.
 
 OPTIONS:
+        --blank <blank>               Check blanking beaver starting at this step
     -c, --check <check-recurrence>    Run the recurrence check, taking more time
         --limit <limit>               Number of steps to limit the VM to.
 
