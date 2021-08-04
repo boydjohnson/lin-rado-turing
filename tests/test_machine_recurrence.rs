@@ -4,7 +4,7 @@ use lin_rado_turing::{
     types::{State, Symbol},
 };
 
-const RECURRENCE: &'static [(&str, usize, usize, usize, &str)] = &[
+const RECURRENCE: &[(&str, usize, usize, usize, &str)] = &[
     // Lin-Rado examples
     ("1RB 1RH 0RC 1LB 1LA 0RB", 2, 9, 10, "3-2"), // total recurrence
     ("1RB 1RH 1LB 0LC 1LA 1RA", 4, 12, 7, "3-2"), // left barrier
