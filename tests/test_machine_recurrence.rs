@@ -120,6 +120,7 @@ fn assert_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
         steps + 2 * period,
         &mut None,
         check,
+        None,
         parallel,
     );
 
