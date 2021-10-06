@@ -4,14 +4,22 @@ use crate::types::{
 };
 use std::{collections::BTreeMap, str::FromStr};
 
+pub type Action<S, Sym> = (S, Sym);
+pub type Instruction<S, Sym> = (S, Sym, Direction);
+
 #[derive(Debug)]
-pub struct Program<State, Symbol>(BTreeMap<(State, Symbol), (State, Symbol, Direction)>);
+pub struct Program<State, Symbol>(
+    BTreeMap<Action<State, Symbol>, Option<Instruction<State, Symbol>>>,
+);
 
 impl<S: State, Sym: Symbol> Program<S, Sym> {
-    pub fn instruction(&self, state: S, symbol: Sym) -> &(S, Sym, Direction) {
-        self.0.get(&(state, symbol)).expect(
-            "An unexpected state, symbol pair was asked for: possibly Halt state was entered",
-        )
+    pub fn instruction(&self, state: S, symbol: Sym) -> Option<&Instruction<S, Sym>> {
+        self.0
+            .get(&(state, symbol))
+            .expect(
+                "An unexpected state, symbol pair was asked for: possibly Halt state was entered",
+            )
+            .as_ref()
     }
 }
 
@@ -26,21 +34,27 @@ where
 
         let mut inner = BTreeMap::new();
 
-        for state in State::iter_states() {
-            for symbol in Symbol::iter_symbols() {
+        for state in S::iter_states() {
+            for symbol in Sym::iter_symbols() {
                 match program_string_split.next() {
                     Some(item) => {
                         let (sym, state_dir) = item.split_at(1);
                         let (direction, write_state) = state_dir.split_at(1);
-
-                        inner.insert(
-                            (state, symbol),
-                            (
-                                write_state.parse::<S>()?,
-                                sym.parse::<Sym>()?,
-                                direction.parse()?,
-                            ),
-                        );
+                        match (write_state, sym, direction) {
+                            (".", ".", ".") => {
+                                inner.insert((state, symbol), None);
+                            }
+                            (_, _, _) => {
+                                inner.insert(
+                                    (state, symbol),
+                                    Some((
+                                        write_state.parse::<S>()?,
+                                        sym.parse::<Sym>()?,
+                                        direction.parse()?,
+                                    )),
+                                );
+                            }
+                        }
                     }
                     None => {
                         return Err(ProgramParseError::Error(
@@ -121,8 +135,8 @@ mod tests {
         let prog = program.unwrap();
 
         assert_eq!(
-            *prog.instruction(TwoState::A, TwoSymbol::Zero),
-            (TwoState::B, TwoSymbol::One, Direction::Right)
+            prog.instruction(TwoState::A, TwoSymbol::Zero),
+            Some(&(TwoState::B, TwoSymbol::One, Direction::Right))
         );
     }
 
@@ -131,5 +145,16 @@ mod tests {
         let program = "1RB 0LA 1RB 0LA 1LB".parse::<Program<TwoState, TwoSymbol>>();
 
         assert!(program.is_err());
+    }
+
+    #[test]
+    fn test_program_undefined() {
+        let program = "1RB ... 1LA 1RH".parse::<Program<TwoState, TwoSymbol>>();
+
+        assert!(program.is_ok());
+
+        let prog = program.unwrap();
+
+        assert_eq!(prog.instruction(TwoState::A, TwoSymbol::One), None,);
     }
 }

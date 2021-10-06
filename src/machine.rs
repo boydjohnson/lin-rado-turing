@@ -1,5 +1,5 @@
 use crate::{
-    program::Program,
+    program::{Action, Program},
     tape::Tape,
     types::{State, Symbol},
 };
@@ -7,7 +7,6 @@ use itertools::{Either, EitherOrBoth::*, Itertools};
 use rayon::prelude::*;
 use std::{cmp::Ordering, collections::BTreeMap, io::Write};
 
-type Action<S, Sym> = (S, Sym);
 type Beeps<S> = BTreeMap<S, usize>;
 type Snapshots<S, Sym> = BTreeMap<Action<S, Sym>, Vec<(usize, usize, i64, Tape<Sym>, Beeps<S>)>>;
 
@@ -332,34 +331,37 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
         }
     }
 
-    fn run_turing_step(&mut self, init: &mut usize, marks: &mut usize) {
+    fn run_turing_step(&mut self, init: &mut usize, marks: &mut usize) -> bool {
         let read_symbol = self.read().copied().unwrap_or_else(Sym::zero);
         let state = self.state;
 
-        let &(new_state, symbol, direction) = self.prog.instruction(state, read_symbol);
+        if let Some(&(new_state, symbol, direction)) = self.prog.instruction(state, read_symbol) {
+            self.state = new_state;
 
-        self.state = new_state;
-
-        if (Sym::zero(), Sym::zero()) == (read_symbol, symbol) {
-        } else if Sym::zero() == read_symbol && Sym::zero() != symbol {
-            *marks += 1;
-        } else if Sym::zero() != read_symbol && Sym::zero() == symbol {
-            *marks -= 1;
-        } else {
-        }
-
-        self.write(symbol);
-
-        match direction {
-            crate::types::Direction::Left => {
-                if self.pos == 0 {
-                    *init += 1;
-                    self.tape.insert();
-                } else {
-                    self.move_left();
-                }
+            if (Sym::zero(), Sym::zero()) == (read_symbol, symbol) {
+            } else if Sym::zero() == read_symbol && Sym::zero() != symbol {
+                *marks += 1;
+            } else if Sym::zero() != read_symbol && Sym::zero() == symbol {
+                *marks -= 1;
+            } else {
             }
-            crate::types::Direction::Right => self.move_right(),
+
+            self.write(symbol);
+
+            match direction {
+                crate::types::Direction::Left => {
+                    if self.pos == 0 {
+                        *init += 1;
+                        self.tape.insert();
+                    } else {
+                        self.move_left();
+                    }
+                }
+                crate::types::Direction::Right => self.move_right(),
+            }
+            true
+        } else {
+            false
         }
     }
 
@@ -414,9 +416,14 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
             }
 
             beeps.insert(self.state, step);
-            self.run_turing_step(&mut init, &mut marks);
+            let notundefined = self.run_turing_step(&mut init, &mut marks);
 
             // Checks for stopping
+
+            if !notundefined {
+                self.halt = Some(Halt::new(step + 1, HaltReason::Undefined));
+                break;
+            }
 
             if let Some(s) = check_blank {
                 if s <= step && marks == 0 {
@@ -469,16 +476,16 @@ impl Halt {
         Self { steps, reason }
     }
 
-    pub fn is_halted(&self) -> bool {
-        self.reason == HaltReason::Halt
+    pub const fn is_halted(&self) -> bool {
+        matches!(self.reason, HaltReason::Halt)
     }
 
     pub const fn is_lr_recurrence(&self) -> bool {
         matches!(self.reason, HaltReason::Recurr(_))
     }
 
-    pub fn is_limit(&self) -> bool {
-        self.reason == HaltReason::XLimit
+    pub const fn is_limit(&self) -> bool {
+        matches!(self.reason, HaltReason::XLimit)
     }
 }
 
@@ -489,6 +496,7 @@ pub enum HaltReason {
     XLimit,
     Quasihalt(usize),
     Blanking,
+    Undefined,
 }
 
 #[allow(clippy::too_many_arguments)]
