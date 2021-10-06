@@ -3,7 +3,7 @@ use crate::{
     tape::Tape,
     types::{State, Symbol},
 };
-use itertools::Either;
+use itertools::{Either, EitherOrBoth::*, Itertools};
 use rayon::prelude::*;
 use std::{cmp::Ordering, collections::BTreeMap, io::Write};
 
@@ -225,63 +225,44 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
                     std::cmp::Ordering::Less => {
                         let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
 
-                        let mut prev = ptape
-                            .iter_to((*pinit as i64 + dmax) as usize)
-                            .collect::<Vec<_>>();
+                        let to_prev = (*pinit as i64 + dmax) as usize;
 
-                        let mut curr = self
-                            .tape
-                            .iter_to((init as i64 + dmax + dev - *pdev) as usize)
-                            .collect::<Vec<_>>();
+                        let mut prev =
+                            Box::new(ptape.iter_to(to_prev)) as Box<dyn Iterator<Item = Sym>>;
 
-                        match curr.len().cmp(&prev.len()) {
+                        let to_curr = (init as i64 + dmax + dev - *pdev) as usize;
+
+                        let mut curr =
+                            Box::new(self.tape.iter_to(to_curr)) as Box<dyn Iterator<Item = Sym>>;
+
+                        match to_curr.cmp(&to_prev) {
                             Ordering::Greater => {
-                                let mut prep = (0..(curr.len() - prev.len()))
-                                    .map(|_| Sym::zero())
-                                    .collect::<Vec<_>>();
-                                prep.append(&mut prev);
-                                prev = prep;
+                                let prep = (0..(to_curr - to_prev)).map(|_| Sym::zero());
+
+                                prev = Box::new(prep.chain(prev)) as Box<dyn Iterator<Item = Sym>>;
                             }
                             Ordering::Less => {
-                                let mut prep = (0..(prev.len() - curr.len()))
-                                    .map(|_| Sym::zero())
-                                    .collect::<Vec<_>>();
-                                prep.append(&mut curr);
-                                curr = prep;
+                                let prep = (0..(to_prev - to_curr)).map(|_| Sym::zero());
+
+                                curr = Box::new(prep.chain(curr)) as Box<dyn Iterator<Item = Sym>>;
                             }
                             Ordering::Equal => (),
                         }
 
-                        (prev, curr)
+                        (OfThree::One(prev), OfThree::One(curr))
                     }
                     Ordering::Greater => {
                         let dmin = deviations[*pstep..].iter().min().copied().unwrap_or(dev);
 
                         let from_prev = *pinit as i64 + dmin;
 
-                        let mut prev = ptape.iter_from(from_prev).collect::<Vec<_>>();
+                        let prev = ptape.iter_from(from_prev);
 
                         let from_curr = init as i64 + dmin + dev - pdev;
 
-                        let mut curr = self.tape.iter_from(from_curr).collect::<Vec<_>>();
+                        let curr = self.tape.iter_from(from_curr);
 
-                        match curr.len().cmp(&prev.len()) {
-                            Ordering::Greater => {
-                                let mut app = (0..(curr.len() - prev.len()))
-                                    .map(|_| Sym::zero())
-                                    .collect::<Vec<_>>();
-                                prev.append(&mut app);
-                            }
-                            Ordering::Less => {
-                                let mut app = (0..(prev.len() - curr.len()))
-                                    .map(|_| Sym::zero())
-                                    .collect::<Vec<_>>();
-                                curr.append(&mut app);
-                            }
-                            Ordering::Equal => (),
-                        }
-
-                        (prev, curr)
+                        (OfThree::Two(prev), OfThree::Two(curr))
                     }
                     Ordering::Equal => {
                         let dmax = deviations[*pstep..].iter().max().copied().unwrap_or(dev) + 1;
@@ -289,22 +270,21 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
 
                         let from_prev = *pinit as i64 + dmin;
 
-                        let prev = ptape
-                            .iter_between(from_prev, *pinit as i64 + dmax)
-                            .collect::<Vec<_>>();
+                        let prev = ptape.iter_between(from_prev, *pinit as i64 + dmax);
 
                         let from_curr = init as i64 + dmin;
 
-                        let curr = self
-                            .tape
-                            .iter_between(from_curr, init as i64 + dmax)
-                            .collect::<Vec<_>>();
+                        let curr = self.tape.iter_between(from_curr, init as i64 + dmax);
 
-                        (prev, curr)
+                        (OfThree::Three(prev), OfThree::Three(curr))
                     }
                 };
 
-                if prev == curr {
+                if prev.zip_longest(curr).all(|both| match both {
+                    Both(p, c) => p == c,
+                    Left(l) => l == Sym::zero(),
+                    Right(r) => r == Sym::zero(),
+                }) {
                     break Some((*pstep, step, pbeeps, ptape));
                 }
             } else {
@@ -453,6 +433,27 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
 
         if self.halt.is_none() {
             self.halt = Some(Halt::new(limit, HaltReason::XLimit));
+        }
+    }
+}
+
+pub enum OfThree<I1, I2, I3> {
+    One(I1),
+    Two(I2),
+    Three(I3),
+}
+
+impl<T, I1: Iterator<Item = T>, I2: Iterator<Item = T>, I3: Iterator<Item = T>> Iterator
+    for OfThree<I1, I2, I3>
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use OfThree::*;
+        match self {
+            One(i) => i.next(),
+            Two(i) => i.next(),
+            Three(i) => i.next(),
         }
     }
 }
