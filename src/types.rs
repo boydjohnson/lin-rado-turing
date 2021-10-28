@@ -1,5 +1,5 @@
 use crate::program::ProgramParseError;
-use std::{fmt::Debug, str::FromStr};
+use std::{convert::TryFrom, fmt::Debug};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -7,388 +7,108 @@ pub enum Direction {
     Right,
 }
 
-impl FromStr for Direction {
-    type Err = ProgramParseError;
+impl TryFrom<char> for Direction {
+    type Error = ProgramParseError;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "L" => Ok(Self::Left),
-            "R" => Ok(Self::Right),
-            s => Err(ProgramParseError::Error(format!(
-                "Expected 'L' or 'R', found {}",
-                s
-            ))),
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        match value {
+            'L' => Ok(Direction::Left),
+            'R' => Ok(Direction::Right),
+            a => Err(ProgramParseError(format!("Expected 'L' or 'R' got {}", a))),
         }
     }
 }
 
-pub trait State: Ord + Eq + FromStr + Copy + Debug {
-    const NUM_STATES: usize;
+pub trait State: Ord + Eq + TryFrom<char> + Copy + Debug {
+    fn states() -> Vec<Self>;
 
     fn initial_state() -> Self;
-
-    fn iter_states() -> Box<dyn Iterator<Item = Self>>;
 
     fn halt() -> Self;
 }
 
-pub trait Symbol: Ord + Eq + FromStr + Copy + Debug + ToString {
-    const NUM: usize;
-
-    fn iter_symbols() -> Box<dyn Iterator<Item = Self>>;
+pub trait Symbol: Ord + Eq + TryFrom<char> + Copy + Debug + ToString {
+    fn symbols() -> Vec<Self>;
 
     fn zero() -> Self;
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum TwoState {
-    A,
-    B,
-    H,
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub enum StateT<const S: char> {
+    Val(char),
+    Halt,
 }
 
-impl FromStr for TwoState {
-    type Err = ProgramParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "A" => Ok(Self::A),
-            "B" => Ok(Self::B),
-            "H" => Ok(Self::H),
-            a => Err(ProgramParseError::Error(format!(
-                "Expected 'A', 'B', 'H' not {}",
-                a
-            ))),
+impl<const S: char> ToString for StateT<S> {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Val(t) => t.to_string(),
+            Self::Halt => "H".to_string(),
         }
     }
 }
 
-impl State for TwoState {
-    const NUM_STATES: usize = 2;
-
-    fn initial_state() -> Self {
-        Self::A
+impl<const S: char> State for StateT<S> {
+    fn states() -> Vec<Self> {
+        ('A'..=S).map(StateT::Val).collect()
     }
 
-    fn iter_states() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![Self::A, Self::B].into_iter())
+    fn initial_state() -> Self {
+        StateT::Val('A')
     }
 
     fn halt() -> Self {
-        Self::H
+        StateT::Halt
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum ThreeState {
-    A,
-    B,
-    C,
-    H,
-}
+impl<const S: char> TryFrom<char> for StateT<S> {
+    type Error = ProgramParseError;
 
-impl FromStr for ThreeState {
-    type Err = ProgramParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "A" => Ok(Self::A),
-            "B" => Ok(Self::B),
-            "C" => Ok(Self::C),
-            "H" => Ok(Self::H),
-            a => Err(ProgramParseError::Error(format!(
-                "Expected 'A', 'B', 'C', or 'H', found {}",
-                a
-            ))),
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        if value == 'H' {
+            Ok(StateT::Halt)
+        } else if value >= 'A' && value <= S {
+            Ok(StateT::Val(value))
+        } else {
+            Err(ProgramParseError(format!(
+                "Expected State instruction 'A' to {} or 'H' got {}",
+                S, value
+            )))
         }
     }
 }
 
-impl State for ThreeState {
-    const NUM_STATES: usize = 3;
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct SymbolT<const S: char>(pub char);
 
-    fn initial_state() -> Self {
-        Self::A
-    }
-
-    fn iter_states() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![Self::A, Self::B, Self::C].into_iter())
-    }
-
-    fn halt() -> Self {
-        Self::H
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum FourState {
-    A,
-    B,
-    C,
-    D,
-    H,
-}
-
-impl State for FourState {
-    const NUM_STATES: usize = 4;
-
-    fn initial_state() -> Self {
-        Self::A
-    }
-
-    fn iter_states() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![Self::A, Self::B, Self::C, Self::D].into_iter())
-    }
-
-    fn halt() -> Self {
-        Self::H
-    }
-}
-
-impl FromStr for FourState {
-    type Err = ProgramParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "A" => Ok(Self::A),
-            "B" => Ok(Self::B),
-            "C" => Ok(Self::C),
-            "D" => Ok(Self::D),
-            "H" => Ok(Self::H),
-            a => Err(ProgramParseError::Error(format!(
-                "Expected 'A', 'B', 'C', 'D', 'H', found {}",
-                a
-            ))),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum TwoSymbol {
-    Zero,
-    One,
-}
-
-impl FromStr for TwoSymbol {
-    type Err = ProgramParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "0" => Ok(Self::Zero),
-            "1" => Ok(Self::One),
-            a => Err(ProgramParseError::Error(format!(
-                "Expected '0' or '1', found {}",
-                a
-            ))),
-        }
-    }
-}
-
-impl Symbol for TwoSymbol {
-    const NUM: usize = 2;
-
-    fn iter_symbols() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![Self::Zero, Self::One].into_iter())
+impl<const S: char> Symbol for SymbolT<S> {
+    fn symbols() -> Vec<Self> {
+        ('0'..=S).map(SymbolT).collect()
     }
 
     fn zero() -> Self {
-        Self::Zero
+        SymbolT('0')
     }
 }
 
-impl ToString for TwoSymbol {
+impl<const S: char> ToString for SymbolT<S> {
     fn to_string(&self) -> String {
-        match self {
-            Self::One => "#",
-            Self::Zero => "_",
+        self.0.to_string()
+    }
+}
+
+impl<const S: char> TryFrom<char> for SymbolT<S> {
+    type Error = ProgramParseError;
+
+    fn try_from(value: char) -> Result<Self, Self::Error> {
+        if value >= '0' && value <= S {
+            Ok(SymbolT(value))
+        } else {
+            Err(ProgramParseError(format!(
+                "Expected Symbol Instruction '0' to '{}' found {}",
+                S, value
+            )))
         }
-        .to_owned()
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum ThreeSymbol {
-    Zero,
-    One,
-    Two,
-}
-
-impl Symbol for ThreeSymbol {
-    const NUM: usize = 3;
-
-    fn iter_symbols() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![Self::Zero, Self::One, Self::Two].into_iter())
-    }
-
-    fn zero() -> Self {
-        Self::Zero
-    }
-}
-
-impl ToString for ThreeSymbol {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Zero => "0",
-            Self::One => "1",
-            Self::Two => "2",
-        }
-        .to_owned()
-    }
-}
-
-impl FromStr for ThreeSymbol {
-    type Err = ProgramParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "0" => Ok(Self::Zero),
-            "1" => Ok(Self::One),
-            "2" => Ok(Self::Two),
-            a => Err(ProgramParseError::Error(format!(
-                "Expected '0', '1', or '2', not {}",
-                a
-            ))),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum FiveState {
-    A,
-    B,
-    C,
-    D,
-    E,
-    H,
-}
-
-impl FromStr for FiveState {
-    type Err = ProgramParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "A" => Ok(Self::A),
-            "B" => Ok(Self::B),
-            "C" => Ok(Self::C),
-            "D" => Ok(Self::D),
-            "E" => Ok(Self::E),
-            "H" => Ok(Self::H),
-            a => Err(ProgramParseError::Error(format!(
-                "Expecting 'A', 'B', 'C', 'D', 'E', or 'H', not {}",
-                a
-            ))),
-        }
-    }
-}
-
-impl State for FiveState {
-    const NUM_STATES: usize = 5;
-
-    fn initial_state() -> Self {
-        Self::A
-    }
-
-    fn iter_states() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![Self::A, Self::B, Self::C, Self::D, Self::E].into_iter())
-    }
-
-    fn halt() -> Self {
-        Self::H
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum SixState {
-    A,
-    B,
-    C,
-    D,
-    E,
-    F,
-    H,
-}
-
-impl FromStr for SixState {
-    type Err = ProgramParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "A" => Ok(Self::A),
-            "B" => Ok(Self::B),
-            "C" => Ok(Self::C),
-            "D" => Ok(Self::D),
-            "E" => Ok(Self::E),
-            "F" => Ok(Self::F),
-            "H" => Ok(Self::H),
-            a => Err(ProgramParseError::Error(format!(
-                "Expecting 'A', 'B', 'C', 'D', 'E', or 'H', not {}",
-                a
-            ))),
-        }
-    }
-}
-
-impl State for SixState {
-    const NUM_STATES: usize = 5;
-
-    fn initial_state() -> Self {
-        Self::A
-    }
-
-    fn iter_states() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![Self::A, Self::B, Self::C, Self::D, Self::E, Self::F].into_iter())
-    }
-
-    fn halt() -> Self {
-        Self::H
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Ord, PartialOrd)]
-pub enum FourSymbol {
-    Zero,
-    One,
-    Two,
-    Three,
-}
-
-impl Symbol for FourSymbol {
-    const NUM: usize = 3;
-
-    fn iter_symbols() -> Box<dyn Iterator<Item = Self>> {
-        Box::new(vec![Self::Zero, Self::One, Self::Two, Self::Three].into_iter())
-    }
-
-    fn zero() -> Self {
-        Self::Zero
-    }
-}
-
-impl FromStr for FourSymbol {
-    type Err = ProgramParseError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "0" => Ok(Self::Zero),
-            "1" => Ok(Self::One),
-            "2" => Ok(Self::Two),
-            "3" => Ok(Self::Three),
-            a => Err(ProgramParseError::Error(format!(
-                "Expected '0', '1', or '2', not {}",
-                a
-            ))),
-        }
-    }
-}
-
-impl ToString for FourSymbol {
-    fn to_string(&self) -> String {
-        match self {
-            Self::Zero => "0",
-            Self::One => "1",
-            Self::Two => "2",
-            Self::Three => "3",
-        }
-        .to_owned()
     }
 }

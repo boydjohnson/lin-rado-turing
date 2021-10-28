@@ -13,15 +13,11 @@ use std::{
 fn main() {
     let args = parse_args();
 
-    let complexity = args
-        .value_of("complexity")
-        .expect("required field missing.");
-
     let prog_str = args.value_of("program").expect("program is required");
 
-    let program = match parse_program(prog_str, complexity) {
+    let program = match parse_program(prog_str) {
         Ok(p) => p,
-        Err(ProgramParseError::Error(msg)) => {
+        Err(ProgramParseError(msg)) => {
             writeln!(
                 std::io::stderr(),
                 "Error parsing program or complexity: {}",
@@ -168,11 +164,6 @@ fn main() {
 fn parse_args<'a>() -> clap::ArgMatches<'a> {
     App::new("turing")
         .about("Turing Machine VM")
-        .arg(
-            Arg::with_name("complexity")
-                .required(true)
-                .help("The number of states and number of symbols. eg 3-2, 4-2, 2-4..."),
-        )
         .arg(
             Arg::with_name("check-recurrence")
                 .short("c")
