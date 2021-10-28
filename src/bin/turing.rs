@@ -76,7 +76,7 @@ fn main() {
 
     let limit = match args
         .value_of("limit")
-        .map_or_else(|| Ok(10000), |s| <usize as FromStr>::from_str(s))
+        .map_or_else(|| Ok(10000), <usize as FromStr>::from_str)
     {
         Ok(l) => l,
         Err(e) => {
