@@ -50,7 +50,7 @@ jobs:
         rustup component add clippy rustfmt
         rustc --version
     - name: clippy
-      run: cargo clippy --tests --examples -- -D warnings
+      run: cargo clippy --tests --examples --bins -- -D warnings
 
     - name: fmt
       run: cargo fmt --all -- --check

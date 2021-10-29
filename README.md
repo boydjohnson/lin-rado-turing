@@ -5,7 +5,7 @@ turing
 Turing Machine VM
 
 USAGE:
-    turing [FLAGS] [OPTIONS] <complexity> <program> [output]
+    turing [FLAGS] [OPTIONS] <program> [output]
 
 FLAGS:
     -h, --help        Prints help information
@@ -19,15 +19,16 @@ OPTIONS:
         --limit <limit>               Number of steps to limit the VM to.
 
 ARGS:
-    <complexity>    The number of states and number of symbols. eg 3-2, 4-2, 2-4...
-    <program>       The Turing program. eg 1RB 0LA 1RB 0LH
-    <output>        Filename to write output to or - for stdout.
+    <program>    The Turing program. eg 1RB 0LA 1RB 0LH
+    <output>     Filename to write output to or - for stdout.
 ```
 
-## Can be used with `xargs` to compute in parallel.
+## Program string scheme
+There are 2 spaces between the instructions for each state and 1 space between each instruction for each symbol.
 
+```bash
+2-state 2-symbol: 1RB 0LA  0RA 1LB
 ```
-cat file.txt | xargs -n 1 -P 4 -I{} turing --check 50000 --limit 100000 4-2 "{}" "{}".log
-```
-This produces a file with a result for each Turing Machine. Then you can `cat *.log` to see
-all the results.
+
+This tool can handle 2-state up through 6-states and 2-symbols through 4-symbols.
+`A-F + H` for states and `0-3` for symbols.
