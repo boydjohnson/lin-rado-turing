@@ -19,7 +19,7 @@ pub struct Machine<State, Symbol> {
     halt: Option<Halt>,
 }
 
-impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
+impl<S: State + Send + Sync + ToString, Sym: Symbol + Send + Sync + ToString> Machine<S, Sym> {
     pub fn new(prog: Program<S, Sym>) -> Self {
         Self {
             prog,
@@ -50,8 +50,8 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
         self.pos += 1;
     }
 
-    pub fn halt(&mut self) -> Option<Halt> {
-        self.halt
+    pub fn halt(&self) -> Option<&Halt> {
+        self.halt.as_ref()
     }
 
     fn input_to_tape(&mut self, input: Vec<Sym>) {
@@ -421,7 +421,17 @@ impl<S: State + Send + Sync, Sym: Symbol + Send + Sync> Machine<S, Sym> {
             // Checks for stopping
 
             if !notundefined {
-                self.halt = Some(Halt::new(step + 1, HaltReason::Undefined));
+                let mut undfnd_str = self.state.to_string();
+
+                undfnd_str.push_str(
+                    self.read()
+                        .copied()
+                        .unwrap_or_else(Sym::zero)
+                        .to_string()
+                        .as_str(),
+                );
+
+                self.halt = Some(Halt::new(step + 1, HaltReason::Undefined(undfnd_str)));
                 break;
             }
 
@@ -465,7 +475,7 @@ impl<T, I1: Iterator<Item = T>, I2: Iterator<Item = T>, I3: Iterator<Item = T>> 
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Halt {
     pub steps: usize,
     pub reason: HaltReason,
@@ -489,18 +499,18 @@ impl Halt {
     }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum HaltReason {
     Halt,
     Recurr(usize),
     XLimit,
     Quasihalt(usize),
     Blanking,
-    Undefined,
+    Undefined(String),
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn run_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
+pub fn run_machine<S: State + Send + Sync + ToString, Sym: Symbol + Send + Sync + ToString>(
     program: Program<S, Sym>,
     prog_str: &str,
     limit: usize,
@@ -509,7 +519,7 @@ pub fn run_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
     check_recurrence: Option<usize>,
     check_blank: Option<usize>,
     parallel: bool,
-) {
+) -> Machine<S, Sym> {
     let mut machine = Machine::new(program);
 
     if verbose {
@@ -547,4 +557,5 @@ pub fn run_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
             }
         }
     }
+    machine
 }

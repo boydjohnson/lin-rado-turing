@@ -68,7 +68,7 @@ fn test_machine_quasihalts_parallel() {
     }
 }
 
-fn assert_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
+fn assert_machine<S: State + Send + Sync + ToString, Sym: Symbol + Send + Sync + ToString>(
     prog: Program<S, Sym>,
     marks: usize,
     steps: usize,
@@ -95,8 +95,8 @@ fn assert_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
     let halt = halt.unwrap();
 
     assert_eq!(
-        (machine.marks(), halt.steps, halt.reason),
-        (marks, steps, HaltReason::Quasihalt(period))
+        (machine.marks(), halt.steps, &halt.reason),
+        (marks, steps, &HaltReason::Quasihalt(period))
     );
 }
 
