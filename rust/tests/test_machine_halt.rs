@@ -113,7 +113,7 @@ fn test_machine_halts_slowly() {
     }
 }
 
-fn assert_machine<S: State + Send + Sync, Sym: Symbol + Send + Sync>(
+fn assert_machine<S: State + Send + Sync + ToString, Sym: Symbol + Send + Sync + ToString>(
     prog: Program<S, Sym>,
     marks: usize,
     steps: usize,

@@ -1,0 +1,13 @@
+[package]
+name = "py_lin_rado_turing_tm"
+version = "0.0.1"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+lin-rado-turing = { path = "../rust" }
+pyo3 = { version = "0.15", features = ["extension-module"] }
+
+[lib]
+crate-type = ["cdylib"]

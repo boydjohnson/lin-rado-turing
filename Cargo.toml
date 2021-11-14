@@ -1,19 +1,8 @@
-[package]
-name = "lin-rado-turing"
-version = "0.1.0"
-authors = ["Boyd Johnson <johnson.boyd@gmail.com>"]
-edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-clap = "2.33"
-itertools = "0.10"
-nom = "7.0"
-rayon = "1.5"
-
-[features]
-slow-tests = []
+[workspace]
+members = [
+    "rust",
+    "python",
+]
 
 [profile.release]
 codegen-units = 1
