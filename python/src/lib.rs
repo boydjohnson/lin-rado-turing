@@ -6,13 +6,12 @@ use lin_rado_turing::{
 use pyo3::{exceptions::PyValueError, prelude::*};
 
 #[pymodule]
-fn py_lin_rado_turing(_py: Python, m: &PyModule) -> PyResult<()> {
+fn tm(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(run_bb, m)?)?;
     Ok(())
 }
 
 #[pyfunction]
-#[pyo3(text_signature = "(prog, /)")]
 pub fn run_bb(
     prog: &str,
     _tape: Vec<i64>,
