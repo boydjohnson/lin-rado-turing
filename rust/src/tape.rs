@@ -1,3 +1,5 @@
+use std::fmt::{write, Display};
+
 use crate::types::{Direction, Symbol};
 
 #[derive(Debug, Clone)]
@@ -59,6 +61,23 @@ impl<Sym: Symbol> Tape<Sym> {
     }
 }
 
+impl<Sym> Display for Tape<Sym>
+where
+    Sym: Symbol,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for (i, sym) in self.0.iter().enumerate() {
+            if i == self.1 {
+                write!(f, "[{}]", sym.to_string())?;
+            } else {
+                write!(f, "{}", sym.to_string())?;
+            }
+        }
+        writeln!(f, "")?;
+        Ok(())
+    }
+}
+
 impl<Sym: Symbol> ITape<Sym> for Tape<Sym> {
     fn read(&self) -> Sym {
         self.read()
@@ -86,7 +105,7 @@ impl<Sym: Symbol> ITape<Sym> for Tape<Sym> {
     }
 }
 
-pub trait ITape<Sym>: Default + Clone {
+pub trait ITape<Sym>: Default + Clone + Display {
     fn read(&self) -> Sym;
 
     fn marks(&self) -> usize;
@@ -99,6 +118,24 @@ pub struct SSTape<Sym> {
     left: Vec<Sym>,
     center: Sym,
     right: Vec<Sym>,
+}
+
+impl<Sym> Display for SSTape<Sym>
+where
+    Sym: Symbol,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for sym in self.left.iter().rev() {
+            write!(f, "{}", sym.to_string())?;
+        }
+        write!(f, "[{}]", self.center.to_string())?;
+        for sym in &self.right {
+            write!(f, "{}", sym.to_string())?;
+        }
+
+        writeln!(f, "")?;
+        Ok(())
+    }
 }
 
 impl<Sym> ITape<Sym> for SSTape<Sym>

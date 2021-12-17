@@ -53,26 +53,6 @@ where
         }
     }
 
-    // fn write_tape<B: Write>(&self, output: &mut Option<B>, step: usize) {
-    //     if let Some(b) = output {
-    //         let mut buffer = format!("{:8} {:?}  ", step, self.state);
-
-    //         let tape_iter = self.tape.iter();
-
-    //         for (idx, s) in tape_iter.enumerate() {
-    //             if idx == self.pos {
-    //                 buffer.push('[');
-    //             }
-    //             buffer.push_str(&s.to_string());
-    //             if idx == self.pos {
-    //                 buffer.push(']')
-    //             }
-    //         }
-
-    //         writeln!(b, "{}", buffer).unwrap();
-    //     }
-    // }
-
     fn run_turing_step(&mut self, marks: &mut usize) -> bool {
         let read_symbol = self.read();
         let state = self.state;
@@ -95,6 +75,12 @@ where
         }
     }
 
+    fn display_tape<B: Write>(&self, output: &mut Option<B>) {
+        if let Some(b) = output {
+            write!(b, "{}", self.tape).expect("Unable to write to output");
+        }
+    }
+
     pub fn run_until_halt<B: Write>(
         &mut self,
         input: Vec<Sym>,
@@ -105,6 +91,8 @@ where
         parallel: bool,
     ) {
         self.input_to_tape(input);
+
+        self.display_tape(output);
 
         let mut marks = 0;
 
@@ -117,6 +105,8 @@ where
 
             beeps.insert(self.state, step);
             let notundefined = self.run_turing_step(&mut marks);
+
+            self.display_tape(output);
 
             // Checks for stopping
 
