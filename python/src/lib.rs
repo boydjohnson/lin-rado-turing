@@ -1,6 +1,7 @@
 use lin_rado_turing::{
     machine::{run_machine, HaltReason, Machine},
     program::{parse_program, ProgramT},
+    tape::SSTape,
     types::{State, Symbol},
 };
 use pyo3::{exceptions::PyValueError, prelude::*};
@@ -136,9 +137,9 @@ pub struct MachineResult {
 }
 
 impl<S: State + Send + Sync + ToString, Sym: Symbol + Send + Sync + ToString>
-    From<(&str, Machine<S, Sym>)> for PyMachine
+    From<(&str, Machine<S, Sym, SSTape<Sym>>)> for PyMachine
 {
-    fn from((prog_str, other): (&str, Machine<S, Sym>)) -> Self {
+    fn from((prog_str, other): (&str, Machine<S, Sym, SSTape<Sym>>)) -> Self {
         let halt = other.halt().expect("Machine has been run until halt");
         let result = match &halt.reason {
             HaltReason::Quasihalt(period) => MachineResult {
