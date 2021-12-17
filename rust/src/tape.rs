@@ -93,3 +93,51 @@ pub trait ITape<Sym>: Default + Clone {
 
     fn write_symbol(&mut self, direction: Direction, symbol: Sym) -> usize;
 }
+
+#[derive(Clone, Debug)]
+pub struct SSTape<Sym> {
+    left: Vec<Sym>,
+    center: Sym,
+    right: Vec<Sym>,
+}
+
+impl<Sym> ITape<Sym> for SSTape<Sym>
+where
+    Sym: Symbol,
+{
+    fn read(&self) -> Sym {
+        self.center
+    }
+
+    fn marks(&self) -> usize {
+        let v = if self.center == Sym::zero() { 0 } else { 1 };
+
+        self.left.iter().filter(|&&el| el != Sym::zero()).count()
+            + self.right.iter().filter(|&&el| el != Sym::zero()).count()
+            + v
+    }
+
+    fn write_symbol(&mut self, direction: Direction, symbol: Sym) -> usize {
+        let (to_push, to_pop) = match direction {
+            Direction::Left => (&mut self.left, &mut self.right),
+            Direction::Right => (&mut self.right, &mut self.left),
+        };
+        to_push.push(symbol);
+        self.center = to_pop.pop().unwrap_or_else(Sym::zero);
+
+        1
+    }
+}
+
+impl<Sym> Default for SSTape<Sym>
+where
+    Sym: Symbol,
+{
+    fn default() -> Self {
+        SSTape {
+            left: vec![],
+            center: Sym::zero(),
+            right: vec![],
+        }
+    }
+}

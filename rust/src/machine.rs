@@ -1,6 +1,6 @@
 use crate::{
     program::{Action, Program},
-    tape::{ITape, Tape},
+    tape::{ITape, SSTape, Tape},
     types::{Direction, State, Symbol},
 };
 use itertools::{Either, EitherOrBoth::*, Itertools};
@@ -213,7 +213,7 @@ pub fn run_machine<S: State + Send + Sync + ToString, Sym: Symbol + Send + Sync 
     check_recurrence: Option<usize>,
     check_blank: Option<usize>,
     parallel: bool,
-) -> Machine<S, Sym, Tape<Sym>> {
+) -> Machine<S, Sym, SSTape<Sym>> {
     let mut machine = Machine::new(program);
 
     if verbose {
