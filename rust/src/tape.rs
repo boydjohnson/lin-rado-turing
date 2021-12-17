@@ -1,13 +1,13 @@
-use std::fmt::{write, Display};
+use std::fmt::Display;
 
 use crate::types::{Direction, Symbol};
 
 #[derive(Debug, Clone)]
-pub struct Tape<Symbol>(Vec<Symbol>, usize, i64);
+pub struct Tape<Symbol>(Vec<Symbol>, usize, i64, usize);
 
 impl<Sym: Symbol> Default for Tape<Sym> {
     fn default() -> Self {
-        Self((0..1).map(|_| Sym::zero()).collect::<Vec<_>>(), 0, 0)
+        Self((0..1).map(|_| Sym::zero()).collect::<Vec<_>>(), 0, 0, 0)
     }
 }
 
@@ -22,8 +22,18 @@ impl<Sym: Symbol> Tape<Sym> {
 
     pub fn write(&mut self, pos: usize, symbol: Sym) {
         if let Some(val) = self.0.get_mut(pos) {
+            if val == &Sym::zero() && symbol != Sym::zero() {
+                self.3 += 1;
+            } else if val != &Sym::zero() && symbol == Sym::zero() {
+                self.3 -= 0;
+            }
+
             *val = symbol;
         } else {
+            if symbol != Sym::zero() {
+                self.3 += 1;
+            }
+
             self.0.push(symbol);
         }
     }
@@ -84,7 +94,7 @@ impl<Sym: Symbol> ITape<Sym> for Tape<Sym> {
     }
 
     fn marks(&self) -> usize {
-        self.0.iter().filter(|&&s| s != Sym::zero()).count()
+        self.3
     }
 
     fn write_symbol(&mut self, direction: Direction, symbol: Sym) -> usize {
@@ -118,6 +128,7 @@ pub struct SSTape<Sym> {
     left: Vec<Sym>,
     center: Sym,
     right: Vec<Sym>,
+    marks: usize,
 }
 
 impl<Sym> Display for SSTape<Sym>
@@ -147,11 +158,7 @@ where
     }
 
     fn marks(&self) -> usize {
-        let v = if self.center == Sym::zero() { 0 } else { 1 };
-
-        self.left.iter().filter(|&&el| el != Sym::zero()).count()
-            + self.right.iter().filter(|&&el| el != Sym::zero()).count()
-            + v
+        self.marks
     }
 
     fn write_symbol(&mut self, direction: Direction, symbol: Sym) -> usize {
@@ -160,6 +167,13 @@ where
             Direction::Right => (&mut self.right, &mut self.left),
         };
         to_push.push(symbol);
+
+        if symbol != Sym::zero() && self.center == Sym::zero() {
+            self.marks += 1;
+        } else if symbol == Sym::zero() && self.center != Sym::zero() {
+            self.marks -= 1;
+        }
+
         self.center = to_pop.pop().unwrap_or_else(Sym::zero);
 
         1
@@ -175,6 +189,7 @@ where
             left: vec![],
             center: Sym::zero(),
             right: vec![],
+            marks: 0,
         }
     }
 }

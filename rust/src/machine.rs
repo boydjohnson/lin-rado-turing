@@ -53,21 +53,12 @@ where
         }
     }
 
-    fn run_turing_step(&mut self, marks: &mut usize) -> bool {
+    fn run_turing_step(&mut self) -> bool {
         let read_symbol = self.read();
         let state = self.state;
 
         if let Some(&(new_state, symbol, direction)) = self.prog.instruction(state, read_symbol) {
             self.state = new_state;
-
-            if (Sym::zero(), Sym::zero()) == (read_symbol, symbol) {
-            } else if Sym::zero() == read_symbol && Sym::zero() != symbol {
-                *marks += 1;
-            } else if Sym::zero() != read_symbol && Sym::zero() == symbol {
-                *marks -= 1;
-            } else {
-            }
-
             self.tape.write_symbol(direction, symbol);
             true
         } else {
@@ -94,8 +85,6 @@ where
 
         self.display_tape(output);
 
-        let mut marks = 0;
-
         let mut beeps: Beeps<S> = BTreeMap::new();
 
         for step in 0..=limit {
@@ -104,7 +93,7 @@ where
             }
 
             beeps.insert(self.state, step);
-            let notundefined = self.run_turing_step(&mut marks);
+            let notundefined = self.run_turing_step();
 
             self.display_tape(output);
 
@@ -120,7 +109,7 @@ where
             }
 
             if let Some(s) = check_blank {
-                if s <= step && marks == 0 {
+                if s <= step && self.marks() == 0 {
                     self.halt = Some(Halt::new(step + 1, HaltReason::Blanking));
                     break;
                 }
