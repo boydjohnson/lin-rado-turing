@@ -1,6 +1,7 @@
 use lin_rado_turing::{
     machine::{HaltReason, Machine},
     program::{parse_program, Program, ProgramT},
+    tape::Tape,
     types::{State, Symbol},
 };
 
@@ -91,7 +92,7 @@ fn assert_machine<S: State + Send + Sync + ToString, Sym: Symbol + Send + Sync +
     prog: Program<S, Sym>,
     steps: usize,
 ) {
-    let mut machine = Machine::new(prog);
+    let mut machine = Machine::<_, _, Tape<_>>::new(prog);
 
     let blank = Some(0);
 

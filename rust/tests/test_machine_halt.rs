@@ -1,6 +1,7 @@
 use lin_rado_turing::{
     machine::Machine,
     program::{parse_program, Program, ProgramT},
+    tape::Tape,
     types::{State, Symbol},
 };
 
@@ -119,7 +120,7 @@ fn assert_machine<S: State + Send + Sync + ToString, Sym: Symbol + Send + Sync +
     steps: usize,
     parallel: bool,
 ) {
-    let mut machine = Machine::new(prog);
+    let mut machine = Machine::<_, _, Tape<_>>::new(prog);
 
     machine.run_until_halt::<std::io::Stdout>(vec![], steps, &mut None, None, None, parallel);
 

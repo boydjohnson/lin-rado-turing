@@ -1,17 +1,17 @@
-use crate::types::Symbol;
+use crate::types::{Direction, Symbol};
 
 #[derive(Debug, Clone)]
-pub struct Tape<Symbol>(Vec<Symbol>);
+pub struct Tape<Symbol>(Vec<Symbol>, usize, i64);
 
 impl<Sym: Symbol> Default for Tape<Sym> {
     fn default() -> Self {
-        Self((0..1).map(|_| Sym::zero()).collect::<Vec<_>>())
+        Self((0..1).map(|_| Sym::zero()).collect::<Vec<_>>(), 0, 0)
     }
 }
 
 impl<Sym: Symbol> Tape<Sym> {
-    pub fn read(&self, pos: usize) -> Option<&Sym> {
-        self.0.get(pos)
+    pub fn read(&self) -> Sym {
+        self.0.get(self.1).copied().unwrap_or_else(|| Sym::zero())
     }
 
     pub fn insert(&mut self) {
@@ -57,4 +57,39 @@ impl<Sym: Symbol> Tape<Sym> {
     pub fn size(&self) -> usize {
         self.0.len()
     }
+}
+
+impl<Sym: Symbol> ITape<Sym> for Tape<Sym> {
+    fn read(&self) -> Sym {
+        self.read()
+    }
+
+    fn marks(&self) -> usize {
+        self.0.iter().filter(|&&s| s != Sym::zero()).count()
+    }
+
+    fn write_symbol(&mut self, direction: Direction, symbol: Sym) -> usize {
+        self.write(self.1, symbol);
+        match direction {
+            Direction::Left => {
+                if self.1 == 0 {
+                    self.insert();
+                } else {
+                    self.1 -= 1;
+                }
+            }
+            Direction::Right => {
+                self.1 += 1;
+            }
+        }
+        1
+    }
+}
+
+pub trait ITape<Sym>: Default + Clone {
+    fn read(&self) -> Sym;
+
+    fn marks(&self) -> usize;
+
+    fn write_symbol(&mut self, direction: Direction, symbol: Sym) -> usize;
 }
